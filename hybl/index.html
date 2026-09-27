@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Truhlářství Hýbl · Nábytek na míru od roku 1994</title>
+<meta name="description" content="Rodinné truhlářství Tomáše Hýbla z Ctiměřic u Mladé Boleslavi. Kuchyně, vestavěné skříně, ložnice, dveře, okna a nábytek na míru od roku 1994. Navrhněte si skříň ve 3D.">
+<meta name="theme-color" content="#14110f">
+<meta property="og:title" content="Truhlářství Hýbl · Nábytek na míru od roku 1994">
+<meta property="og:description" content="Kuchyně, skříně a nábytek na míru z Ctiměřic. Navrhněte si svůj kus ve 3D konfigurátoru.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="cs_CZ">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314110f'/%3E%3Cpath d='M18 14v36M46 14v36M18 32h28' stroke='%23c8894a' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HomeAndConstructionBusiness",
+  "name": "Truhlářství Hýbl",
+  "founder": "Tomáš Hýbl",
+  "foundingDate": "1994",
+  "telephone": ["+420732921879", "+420776119326"],
+  "email": "tomas.hybl@centrum.cz",
+  "taxID": "45099162",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Ctiměřice",
+    "postalCode": "294 46",
+    "addressCountry": "CZ"
+  },
+  "areaServed": "Mladá Boleslav a okolí",
+  "description": "Zakázkové truhlářství – kuchyně, vestavěné skříně, ložnice, dveře, okna, podlahy a nábytek na míru."
+}
+</script>
+<style>
+:root{
+  --bg:#14110f; --bg2:#1c1815; --surface:#231e1a; --line:rgba(243,236,226,.1);
+  --text:#f3ece2; --muted:#b1a593; --accent:#d0924f; --accent2:#ecd2ae;
+  --cream:#efe7db; --ink:#1c1815; --ink-muted:#6b5f52;
+  --radius:18px; --max:1200px;
+  --serif:"Fraunces", Georgia, "Times New Roman", serif;
+  --sans:"Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:17px;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+img,canvas{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button,input,select,textarea{font:inherit;color:inherit}
+::selection{background:var(--accent);color:var(--bg)}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+.eyebrow{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700;display:inline-flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:28px;height:1px;background:currentColor}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.05;letter-spacing:-.02em}
+h2{font-size:clamp(34px,5vw,60px);margin:14px 0 18px}
+h3{font-size:24px}
+.lead{color:var(--muted);font-size:clamp(17px,1.6vw,19px);max-width:560px}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:15px 26px;border-radius:999px;font-weight:700;font-size:15px;border:1px solid transparent;cursor:pointer;transition:transform .25s,background .25s,color .25s,border-color .25s}
+.btn:hover{transform:translateY(-2px)}
+.btn-primary{background:var(--accent);color:#1a120b}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{border-color:rgba(243,236,226,.25)}
+.btn-ghost:hover{border-color:var(--text)}
+.btn svg{width:18px;height:18px}
+
+/* NAV */
+.nav{position:fixed;inset:0 0 auto;z-index:50;transition:background .3s,backdrop-filter .3s,border-color .3s;border-bottom:1px solid transparent}
+.nav.scrolled{background:rgba(20,17,15,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-color:var(--line)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:76px}
+.logo{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.02em}
+.logo-mark{width:38px;height:38px;border-radius:11px;background:var(--accent);display:grid;place-items:center}
+.logo-mark svg{width:20px;height:20px}
+.logo small{display:block;font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:2px}
+.nav-links{display:flex;gap:30px;font-size:15px;font-weight:600;color:var(--muted)}
+.nav-links a{transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{padding:11px 20px;font-size:14px}
+.burger{display:none;background:none;border:0;width:44px;height:44px;cursor:pointer}
+.burger span{display:block;width:22px;height:2px;background:var(--text);margin:5px auto;transition:.3s}
+@media (max-width:900px){
+  .nav-links{position:fixed;inset:76px 0 auto;flex-direction:column;gap:0;background:rgba(20,17,15,.97);padding:10px 24px 24px;transform:translateY(-120%);transition:transform .35s;border-bottom:1px solid var(--line)}
+  .nav-links a{padding:14px 0;border-bottom:1px solid var(--line);font-size:18px;color:var(--text)}
+  .nav.open .nav-links{transform:none}
+  .nav-cta{display:none}
+  .burger{display:block}
+  .nav.open .burger span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+  .nav.open .burger span:nth-child(2){opacity:0}
+  .nav.open .burger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+}
+
+/* HERO */
+.hero{position:relative;min-height:100vh;min-height:100svh;display:flex;align-items:center;overflow:hidden;
+  background:radial-gradient(900px 600px at 72% 55%,rgba(208,146,79,.2),transparent 70%),radial-gradient(700px 500px at 10% 10%,rgba(236,210,174,.06),transparent 70%),var(--bg)}
+#hero3d{position:absolute;top:0;right:0;width:62%;height:100%;cursor:grab}
+.hero-inner{position:relative;z-index:2;pointer-events:none;width:100%}
+.hero-inner .wrap > *{pointer-events:auto}
+.hero h1{font-size:clamp(44px,7.4vw,96px);max-width:640px;margin:22px 0 24px}
+.hero h1 em{font-style:italic;color:var(--accent2);font-weight:400}
+.hero .lead{margin-bottom:36px;max-width:470px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:14px}
+.hero-hint{position:absolute;right:32px;bottom:34px;z-index:2;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:10px;pointer-events:none}
+.hero-hint i{width:34px;height:34px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-style:normal;animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(208,146,79,.4)}50%{box-shadow:0 0 0 10px rgba(208,146,79,0)}}
+.scroll-cue{position:absolute;left:50%;bottom:28px;width:24px;height:40px;border:2px solid rgba(243,236,226,.3);border-radius:14px;transform:translateX(-50%);z-index:2}
+.scroll-cue::after{content:"";position:absolute;left:50%;top:8px;width:4px;height:8px;background:var(--accent);border-radius:2px;transform:translateX(-50%);animation:cue 1.8s infinite}
+@keyframes cue{0%{opacity:0;transform:translate(-50%,0)}40%{opacity:1}100%{opacity:0;transform:translate(-50%,12px)}}
+.no-webgl #hero3d{display:none}
+@media (max-width:900px){
+  .hero{flex-direction:column;align-items:stretch;padding:76px 0 56px}
+  #hero3d{position:relative;width:100%;height:42vh;height:42svh;min-height:260px;flex:none}
+  .hero-hint,.scroll-cue{display:none}
+  .hero h1{margin:12px 0 18px}
+  .hero .lead{margin-bottom:28px}
+}
+
+/* MARQUEE */
+.marquee{border-block:1px solid var(--line);overflow:hidden;padding:22px 0;background:var(--bg2)}
+.marquee-track{display:flex;gap:48px;width:max-content;animation:marq 38s linear infinite;font-family:var(--serif);font-size:clamp(22px,3vw,34px);color:var(--muted);white-space:nowrap}
+.marquee-track span{display:flex;align-items:center;gap:48px}
+.marquee-track span::after{content:"✦";color:var(--accent);font-size:.6em}
+@keyframes marq{to{transform:translateX(-50%)}}
+
+/* STATS */
+.stats{padding:110px 0 40px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.stat{background:var(--bg);padding:34px 28px}
+.stat b{display:block;font-family:var(--serif);font-size:clamp(40px,5vw,58px);font-weight:600;color:var(--accent2);line-height:1}
+.stat span{display:block;margin-top:10px;color:var(--muted);font-size:15px}
+@media (max-width:800px){.stats-grid{grid-template-columns:1fr 1fr}}
+
+/* ABOUT */
+.about{padding:80px 0 120px}
+.about-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:70px;align-items:center}
+.about blockquote{font-family:var(--serif);font-size:clamp(26px,3vw,38px);line-height:1.25;font-weight:400;font-style:italic;color:var(--text)}
+.about blockquote::before{content:"„";color:var(--accent);font-size:1.4em;line-height:0;vertical-align:-.3em;margin-right:4px}
+.about cite{display:block;margin-top:24px;font-style:normal;color:var(--muted);font-size:15px}
+.about cite b{color:var(--text)}
+.about p{color:var(--muted);margin-bottom:16px}
+@media (max-width:900px){.about-grid{grid-template-columns:1fr;gap:36px}}
+
+/* SERVICES (light) */
+.services{background:var(--cream);color:var(--ink);padding:120px 0;border-radius:36px 36px 0 0;position:relative}
+.services .lead{color:var(--ink-muted)}
+.services .eyebrow{color:#a86a2e}
+.sv-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap;margin-bottom:56px}
+.sv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;perspective:1000px}
+.sv{background:#fff;border-radius:var(--radius);padding:30px 26px 28px;min-height:250px;display:flex;flex-direction:column;border:1px solid rgba(28,24,21,.07);transform-style:preserve-3d;transition:transform .2s ease-out,box-shadow .3s;will-change:transform}
+.sv:hover{box-shadow:0 30px 60px -30px rgba(60,35,15,.35)}
+.sv-ico{width:52px;height:52px;border-radius:14px;background:#f5ecdf;display:grid;place-items:center;margin-bottom:auto;transform:translateZ(30px)}
+.sv-ico svg{width:26px;height:26px;stroke:#a86a2e;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.sv h3{font-size:22px;margin:28px 0 8px;transform:translateZ(20px)}
+.sv p{font-size:15px;color:var(--ink-muted);line-height:1.5}
+.sv.featured{background:var(--ink);color:var(--text);grid-column:span 2}
+.sv.featured p{color:var(--muted)}
+.sv.featured .sv-ico{background:rgba(208,146,79,.15)}
+.sv.featured .sv-ico svg{stroke:var(--accent)}
+.sv .tag{display:inline-block;align-self:flex-start;margin-top:16px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border-radius:99px;background:var(--accent);color:#1a120b}
+@media (max-width:1000px){.sv-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.sv-grid{grid-template-columns:1fr}.sv.featured{grid-column:auto}}
+
+/* CONFIGURATOR */
+.config{padding:130px 0;background:linear-gradient(var(--cream) 0 0) top/100% 36px no-repeat,var(--bg)}
+.config-head{text-align:center;max-width:720px;margin:0 auto 50px}
+.config-head .lead{margin:0 auto}
+.config-shell{display:grid;grid-template-columns:1fr 390px;background:var(--surface);border:1px solid var(--line);border-radius:28px;overflow:hidden;min-height:640px}
+.stage{position:relative;background:radial-gradient(circle at 50% 40%,#3a2f27,#1a1512 75%);min-height:420px;touch-action:pan-y}
+#config3d{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+#config3d:active{cursor:grabbing}
+.stage-bar{position:absolute;left:18px;right:18px;bottom:18px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;z-index:2}
+.chip{background:rgba(20,17,15,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:99px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,border-color .2s}
+.chip:hover,.chip[aria-pressed="true"]{border-color:var(--accent);background:rgba(208,146,79,.2)}
+.dims{position:absolute;left:20px;top:18px;z-index:2;font-size:13px;color:var(--muted);background:rgba(20,17,15,.6);padding:8px 14px;border-radius:10px;border:1px solid var(--line)}
+.dims b{color:var(--text)}
+.panel{padding:30px 28px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:26px}
+.group-label{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;justify-content:space-between}
+.group-label output{color:var(--accent2);letter-spacing:0;font-size:14px;text-transform:none}
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.sw{width:46px;height:46px;border-radius:50%;border:2px solid transparent;cursor:pointer;position:relative;outline-offset:3px;transition:transform .2s}
+.sw:hover{transform:scale(1.08)}
+.sw[aria-checked="true"]{border-color:var(--accent2);box-shadow:0 0 0 3px var(--surface) inset}
+.wood-name{margin-top:10px;font-size:14px;color:var(--text)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:rgba(243,236,226,.15);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);border:4px solid var(--surface);box-shadow:0 0 0 1px var(--accent);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:4px solid var(--surface);cursor:pointer}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:rgba(0,0,0,.25);padding:5px;border-radius:12px}
+.seg button{background:none;border:0;padding:10px 6px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button[aria-checked="true"]{background:var(--bg);color:var(--text)}
+.motifs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.motif{aspect-ratio:1;border-radius:12px;border:2px solid transparent;cursor:pointer;background-size:cover;background-position:center;position:relative;font-size:11px;font-weight:700;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.motif[aria-checked="true"]{border-color:var(--accent2)}
+.motif.none{background:repeating-linear-gradient(45deg,#2c2520 0 6px,#231e1a 6px 12px);color:var(--muted);text-shadow:none}
+.motif.upload{background:#2c2520;color:var(--accent2);text-shadow:none;border-style:dashed;border-color:rgba(243,236,226,.25);flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.motif.upload[aria-checked="true"]{border-style:solid;border-color:var(--accent2)}
+.motif.upload span{font-size:22px;line-height:1}
+.hint{font-size:13px;color:var(--muted);margin-top:10px;line-height:1.45}
+.panel .btn{justify-content:center;margin-top:auto}
+.stage-fallback{display:none;position:absolute;inset:0;place-items:center;text-align:center;padding:30px;color:var(--muted)}
+.no-webgl .stage-fallback{display:grid}
+@media (max-width:980px){
+  .config-shell{grid-template-columns:1fr}
+  .stage{min-height:62vh}
+  .panel{border-left:0;border-top:1px solid var(--line)}
+}
+
+/* OVERFACE */
+.overface{padding:40px 0 130px}
+.of-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.of-card{border-radius:28px;aspect-ratio:4/3.4;position:relative;overflow:hidden;background:#241d18;perspective:900px;display:grid;place-items:center}
+.of-doors{display:flex;gap:6px;width:70%;height:78%;transform:rotateY(-18deg) rotateX(4deg);transform-style:preserve-3d;transition:transform .6s}
+.of-card:hover .of-doors{transform:rotateY(-6deg) rotateX(2deg)}
+.of-door{flex:1;border-radius:4px;background-image:var(--img);background-size:300% 100%;box-shadow:0 30px 50px -20px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.08)}
+.of-door:nth-child(1){background-position:0 0}
+.of-door:nth-child(2){background-position:50% 0}
+.of-door:nth-child(3){background-position:100% 0}
+.of-list{list-style:none;margin:26px 0 34px;display:grid;gap:14px}
+.of-list li{display:flex;gap:14px;color:var(--muted)}
+.of-list li::before{content:"";flex:none;width:22px;height:22px;border-radius:50%;background:rgba(208,146,79,.18) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d0924f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12l4 4 8-8'/%3E%3C/svg%3E") center/13px no-repeat;margin-top:2px}
+@media (max-width:900px){.of-grid{grid-template-columns:1fr;gap:40px}}
+
+/* PROCESS */
+.process{padding:120px 0;background:var(--bg2);border-block:1px solid var(--line)}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:60px;counter-reset:s;position:relative}
+.steps::before{content:"";position:absolute;top:27px;left:28px;right:28px;height:1px;background:linear-gradient(90deg,var(--accent),rgba(208,146,79,.1))}
+.step{position:relative}
+.step::before{counter-increment:s;content:counter(s,decimal-leading-zero);display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:var(--bg);border:1px solid var(--accent);font-family:var(--serif);font-size:19px;color:var(--accent2);margin-bottom:22px;position:relative}
+.step h3{font-size:21px;margin-bottom:8px}
+.step p{color:var(--muted);font-size:15px}
+@media (max-width:900px){
+  .steps{grid-template-columns:1fr;gap:30px}
+  .steps::before{top:0;bottom:0;left:27px;right:auto;width:1px;height:auto;background:linear-gradient(var(--accent),rgba(208,146,79,.1))}
+  .step{padding-left:80px}
+  .step::before{position:absolute;left:0;top:-6px;margin:0}
+}
+
+/* CONTACT */
+.contact{padding:130px 0 100px}
+.contact-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:60px}
+.contact-list{list-style:none;margin-top:36px;display:grid;gap:4px}
+.contact-list a,.contact-list div{display:flex;align-items:center;gap:18px;padding:18px 0;border-bottom:1px solid var(--line);transition:color .2s}
+.contact-list a:hover{color:var(--accent2)}
+.contact-list svg{width:22px;height:22px;stroke:var(--accent);fill:none;stroke-width:1.7;flex:none}
+.contact-list small{display:block;color:var(--muted);font-size:13px}
+.contact-list b{font-weight:600;font-size:18px}
+form.card{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:36px;display:grid;gap:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+label.f{display:grid;gap:7px;font-size:13px;font-weight:600;color:var(--muted)}
+.f input,.f select,.f textarea{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:16px;color:var(--text);transition:border-color .2s;width:100%}
+.f textarea{min-height:120px;resize:vertical}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--accent)}
+.cfg-attach{display:none;background:rgba(208,146,79,.1);border:1px dashed rgba(208,146,79,.5);border-radius:12px;padding:14px 16px;font-size:14px;color:var(--accent2)}
+.cfg-attach.on{display:block}
+.form-note{font-size:13px;color:var(--muted)}
+@media (max-width:900px){.contact-grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}form.card{padding:24px}}
+
+footer{border-top:1px solid var(--line);padding:36px 0;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(40px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+.rv.in{opacity:1;transform:none}
+.sv.rv.in{transition:opacity .9s,transform .2s ease-out,box-shadow .3s}
+.rv.d1{transition-delay:.1s}.rv.d2{transition-delay:.2s}.rv.d3{transition-delay:.3s}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv{opacity:1;transform:none;transition:none}
+  .marquee-track,.hero-hint i,.scroll-cue::after{animation:none}
+}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a href="#top" class="logo" aria-label="Truhlářství Hýbl – úvod">
+      <span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#1a120b" stroke-width="3" stroke-linecap="round"><path d="M6 4v16M18 4v16M6 12h12"/></svg></span>
+      <span>HÝBL<small>truhlářství od 1994</small></span>
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#sluzby">Služby</a>
+      <a href="#konfigurator">3D návrh</a>
+      <a href="#overface">Overface</a>
+      <a href="#postup">Jak pracujeme</a>
+      <a href="#kontakt">Kontakt</a>
+    </nav>
+    <a href="tel:+420732921879" class="btn btn-primary nav-cta">732 921 879</a>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <canvas id="hero3d" aria-label="3D model komody z ořechového dřeva"></canvas>
+    <div class="hero-inner">
+      <div class="wrap">
+        <span class="eyebrow rv">Rodinné truhlářství · Ctiměřice</span>
+        <h1 class="rv d1">Nábytek, který <em>přežije</em> trendy.</h1>
+        <p class="lead rv d2">Kuchyně, vestavěné skříně a nábytek na míru. Od roku 1994 navrhujeme, vyrábíme a montujeme sami – bez prostředníků, s ručením mistra.</p>
+        <div class="hero-actions rv d3">
+          <a href="#konfigurator" class="btn btn-primary">Navrhnout ve 3D <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a href="#kontakt" class="btn btn-ghost">Nezávazná poptávka</a>
+        </div>
+      </div>
+    </div>
+    <div class="hero-hint"><i>✦</i> Najeďte na dvířka · táhněte pro otočení</div>
+    <div class="scroll-cue" aria-hidden="true"></div>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span>Dub</span><span>Ořech</span><span>Buk</span><span>Jasan</span><span>Masiv</span><span>Dýha</span><span>Lamino</span><span>Overface potisk</span>
+      <span>Dub</span><span>Ořech</span><span>Buk</span><span>Jasan</span><span>Masiv</span><span>Dýha</span><span>Lamino</span><span>Overface potisk</span>
+    </div>
+  </div>
+
+  <section class="stats">
+    <div class="wrap">
+      <div class="stats-grid rv">
+        <div class="stat"><b data-count="1994">1994</b><span>rok založení dílny</span></div>
+        <div class="stat"><b data-years>30+</b><span>let zkušeností s řemeslem</span></div>
+        <div class="stat"><b>100 %</b><span>výroba na míru – žádné katalogy</span></div>
+        <div class="stat"><b>1</b><span>člověk od zaměření po montáž</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="about">
+    <div class="wrap about-grid">
+      <div class="rv">
+        <blockquote>Každý kus, který opustí dílnu, musí vydržet déle než hypotéka na dům, do kterého jde.</blockquote>
+        <cite><b>Tomáš Hýbl</b> · majitel a truhlář</cite>
+      </div>
+      <div class="rv d1">
+        <span class="eyebrow">O dílně</span>
+        <h2>Řemeslo, ne&nbsp;montovna.</h2>
+        <p>Jsme malá rodinná firma z Ctiměřic u Mladé Boleslavi. Od první skici přes výběr materiálu až po poslední seřízený pant máte jednoho člověka, který za výsledkem stojí svým jménem.</p>
+        <p>Vyrábíme kuchyně, vestavěné skříně, ložnice i atypické kusy tam, kde hotový nábytek nepasuje – do podkroví, pod schody, do výklenků.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="services" id="sluzby">
+    <div class="wrap">
+      <div class="sv-head">
+        <div class="rv">
+          <span class="eyebrow">Co pro vás uděláme</span>
+          <h2>Od kuchyně<br>po poslední lištu.</h2>
+        </div>
+        <p class="lead rv d1">Kompletní truhlářské práce pro byty, domy i firmy. Zaměříme, navrhneme, vyrobíme a namontujeme.</p>
+      </div>
+      <div class="sv-grid">
+        <article class="sv featured rv">
+          <div class="sv-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h18M8 6.5h2M14 6.5h2M8 14v4M16 14v4"/></svg></div>
+          <h3>Kuchyně na míru</h3>
+          <p>Návrh, výroba i prodej kuchyní. Využijeme každý centimetr – od rohových řešení po vestavné spotřebiče.</p>
+          <span class="tag">Nejžádanější</span>
+        </article>
+        <article class="sv rv d1">
+          <div class="sv-ico"><svg viewBox="0 0 24 24"><rect x="3" y="2" width="18" height="20" rx="1.5"/><path d="M12 2v20M9.5 11v2M14.5 11v2"/></svg></div>
+          <h3>Vestavěné skříně</h3>
+          <p>Posuvné i otočné, do podkroví a atypických prostor.</p>
+        </article>
+        <article class="sv rv d2">
+          <div class="sv-ico"><svg viewBox="0 0 24 24"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 21v-3M21 21v-3M6 10V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4"/></svg></div>
+          <h3>Ložnice</h3>
+          <p>Postele, noční stolky a šatní systémy v jednom stylu.</p>
+        </article>
+        <article class="sv rv">
+          <div class="sv-ico"><svg viewBox="0 0 24 24"><path d="M4 21V9l8-6 8 6v12"/><path d="M4 21h16M9 21v-6h6v6"/></svg></div>
+          <h3>Nábytek na míru</h3>
+          <p>Knihovny, komody, pracovny, atypy pod schody.</p>
+        </article>
+        <article class="sv rv d1">
+          <div class="sv-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/></svg></div>
+          <h3>Dřevěná a euro okna</h3>
+          <p>Prodej a montáž oken včetně zapravení.</p>
+        </article>
+        <article class="sv rv d2">
+          <div class="sv-ico"><svg viewBox="0 0 24 24"><path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17M3 21h18"/><circle cx="14.5" cy="12" r="1"/></svg></div>
+          <h3>Dveře a zárubně</h3>
+          <p>Interiérové dveře, obložkové zárubně, montáž.</p>
+        </article>
+        <article class="sv rv d3">
+          <div class="sv-ico"><svg viewBox="0 0 24 24"><path d="M3 7h8v4H3zM13 7h8v4h-8zM3 13h5v4H3zM10 13h11v4H10z"/></svg></div>
+          <h3>Podlahy</h3>
+          <p>Pokládka dřevěných a plovoucích podlah.</p>
+        </article>
+        <article class="sv rv">
+          <div class="sv-ico"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></div>
+          <h3>Montáž nábytku</h3>
+          <p>Složíme a seřídíme i nábytek, který jste koupili jinde.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="config" id="konfigurator">
+    <div class="wrap">
+      <div class="config-head rv">
+        <span class="eyebrow">3D konfigurátor</span>
+        <h2>Navrhněte si skříň. Hned teď.</h2>
+        <p class="lead">Vyberte dřevo, rozměry a úchytky – nebo nahrajte vlastní fotku a uvidíte ji vytištěnou na dvířkách. Návrh nám pak jedním kliknutím pošlete.</p>
+      </div>
+      <div class="config-shell rv">
+        <div class="stage">
+          <canvas id="config3d" aria-label="Interaktivní 3D náhled skříně"></canvas>
+          <div class="stage-fallback">Váš prohlížeč nepodporuje 3D zobrazení.<br>Konfiguraci přesto můžete vyplnit vpravo.</div>
+          <div class="dims" id="dims"></div>
+          <div class="stage-bar">
+            <button class="chip" id="btnOpen" aria-pressed="false">Otevřít dvířka</button>
+            <button class="chip" id="btnExplode" aria-pressed="false">Rozložit na díly</button>
+            <button class="chip" id="btnSpin" aria-pressed="false">Otáčet</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div>
+            <div class="group-label">Materiál</div>
+            <div class="swatches" role="radiogroup" aria-label="Materiál" id="woods"></div>
+            <div class="wood-name" id="woodName"></div>
+          </div>
+          <div>
+            <div class="group-label"><label for="rW">Šířka</label><output id="oW"></output></div>
+            <input type="range" id="rW" min="60" max="280" step="10" value="160">
+          </div>
+          <div>
+            <div class="group-label"><label for="rH">Výška</label><output id="oH"></output></div>
+            <input type="range" id="rH" min="60" max="240" step="10" value="200">
+          </div>
+          <div>
+            <div class="group-label">Úchytky</div>
+            <div class="seg" role="radiogroup" aria-label="Úchytky" id="handles">
+              <button role="radio" data-v="lista" aria-checked="true">Lišta</button>
+              <button role="radio" data-v="knopka" aria-checked="false">Knopka</button>
+              <button role="radio" data-v="bez" aria-checked="false">Bez úchytek</button>
+            </div>
+          </div>
+          <div>
+            <div class="group-label">Overface potisk dvířek</div>
+            <div class="motifs" role="radiogroup" aria-label="Potisk" id="motifs">
+              <button class="motif none" role="radio" data-m="none" aria-checked="true">Bez</button>
+              <button class="motif" role="radio" data-m="les" aria-checked="false">Les</button>
+              <button class="motif" role="radio" data-m="hory" aria-checked="false">Hory</button>
+              <button class="motif upload" role="radio" data-m="foto" aria-checked="false"><span>+</span>Vaše foto</button>
+            </div>
+            <input type="file" id="photo" accept="image/*" class="sr">
+            <p class="hint">Fotka zůstává jen ve vašem prohlížeči – nikam se nenahrává.</p>
+          </div>
+          <a href="#kontakt" class="btn btn-primary" id="sendCfg">Poslat tento návrh k nacenění</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="overface" id="overface">
+    <div class="wrap of-grid">
+      <div class="of-card rv" aria-hidden="true">
+        <div class="of-doors" id="ofDoors"><div class="of-door"></div><div class="of-door"></div><div class="of-door"></div></div>
+      </div>
+      <div class="rv d1">
+        <span class="eyebrow">Technologie Overface</span>
+        <h2>Vaše fotka.<br>Na dvířkách skříně.</h2>
+        <p class="lead">Tisk v&nbsp;fotorealistické kvalitě přímo na dvířka nábytku a další rovné plochy. Pro ty, kdo nechtějí nábytek jako od souseda.</p>
+        <ul class="of-list">
+          <li>Vlastní fotografie z dovolené, dětská kresba nebo firemní logo</li>
+          <li>Motiv přes celou šířku skříně – plynule přes všechna dvířka</li>
+          <li>Ideální do dětských pokojů, kuchyní, kanceláří i provozoven</li>
+        </ul>
+        <a href="#konfigurator" class="btn btn-ghost">Vyzkoušet v konfigurátoru</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="process" id="postup">
+    <div class="wrap">
+      <div class="rv">
+        <span class="eyebrow">Jak pracujeme</span>
+        <h2>Pět kroků k&nbsp;nábytku na roky.</h2>
+      </div>
+      <div class="steps">
+        <div class="step rv"><h3>Konzultace</h3><p>Zavoláte nebo pošlete návrh z konfigurátoru. Probereme představu a rozpočet.</p></div>
+        <div class="step rv d1"><h3>Zaměření</h3><p>Přijedeme k vám a změříme prostor na milimetry. Nerovné zdi nevadí.</p></div>
+        <div class="step rv d2"><h3>Návrh a cena</h3><p>Připravíme návrh s výběrem materiálů a pevnou cenovou nabídku.</p></div>
+        <div class="step rv d3"><h3>Výroba</h3><p>Vše vyrábíme ve vlastní dílně – kontrolujeme každý spoj.</p></div>
+        <div class="step rv"><h3>Montáž</h3><p>Namontujeme, seřídíme a po sobě uklidíme. Hotovo.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact" id="kontakt">
+    <div class="wrap contact-grid">
+      <div class="rv">
+        <span class="eyebrow">Kontakt</span>
+        <h2>Pojďme to probrat.</h2>
+        <p class="lead">Nejrychleji nás zastihnete telefonicky. Na e-maily odpovídáme obvykle do druhého dne.</p>
+        <ul class="contact-list">
+          <li><a href="tel:+420732921879"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span><small>Telefon</small><b>+420 732 921 879</b></span></a></li>
+          <li><a href="tel:+420776119326"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span><small>Telefon 2</small><b>+420 776 119 326</b></span></a></li>
+          <li><a href="mailto:tomas.hybl@centrum.cz"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg><span><small>E-mail</small><b>tomas.hybl@centrum.cz</b></span></a></li>
+          <li><a href="https://mapy.cz/zakladni?q=Ctim%C4%9B%C5%99ice" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span><small>Dílna</small><b>Ctiměřice, 294 46</b></span></a></li>
+          <li><div><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg><span><small>Tomáš Hýbl · IČO</small><b>450 99 162</b></span></div></li>
+        </ul>
+      </div>
+      <form class="card rv d1" id="form" novalidate>
+        <div class="row">
+          <label class="f">Jméno<input name="jmeno" required autocomplete="name" placeholder="Jan Novák"></label>
+          <label class="f">Telefon<input name="telefon" type="tel" autocomplete="tel" placeholder="+420 …"></label>
+        </div>
+        <label class="f">E-mail<input name="email" type="email" autocomplete="email" placeholder="jan@email.cz"></label>
+        <label class="f">O co máte zájem
+          <select name="typ">
+            <option>Kuchyně na míru</option>
+            <option>Vestavěná skříň</option>
+            <option>Ložnice</option>
+            <option>Nábytek na míru</option>
+            <option>Okna</option>
+            <option>Dveře a zárubně</option>
+            <option>Podlahy</option>
+            <option>Montáž nábytku</option>
+            <option>Overface potisk</option>
+            <option>Jiné</option>
+          </select>
+        </label>
+        <label class="f">Zpráva<textarea name="zprava" placeholder="Popište prostor, rozměry, představu o materiálu…"></textarea></label>
+        <div class="cfg-attach" id="cfgAttach"></div>
+        <button class="btn btn-primary" type="submit">Odeslat poptávku</button>
+        <p class="form-note">Odesláním se otevře váš e-mailový klient s předvyplněnou zprávou.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© <span id="year"></span> Truhlářství Hýbl · Tomáš Hýbl · IČO 450 99 162</span>
+    <span>Ctiměřice 294 46 · Mladá Boleslav a okolí</span>
+  </div>
+</footer>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+
+<!-- UI (bez závislostí) -->
+<script>
+(function(){
+  var nav=document.getElementById('nav'),burger=document.getElementById('burger');
+  var onScroll=function(){nav.classList.toggle('scrolled',scrollY>30)};
+  addEventListener('scroll',onScroll,{passive:true});onScroll();
+  burger.addEventListener('click',function(){var o=nav.classList.toggle('open');burger.setAttribute('aria-expanded',o)});
+  document.querySelectorAll('#navLinks a').forEach(function(a){a.addEventListener('click',function(){nav.classList.remove('open');burger.setAttribute('aria-expanded',false)})});
+  document.getElementById('year').textContent=new Date().getFullYear();
+  var y=document.querySelector('[data-years]');if(y)y.textContent=(new Date().getFullYear()-1994)+'';
+
+  // reveal
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.rv').forEach(function(el){io.observe(el)});
+
+  // 3D tilt na kartách služeb
+  if(matchMedia('(hover:hover)').matches&&!matchMedia('(prefers-reduced-motion:reduce)').matches){
+    document.querySelectorAll('.sv').forEach(function(c){
+      c.addEventListener('pointermove',function(e){var r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+        c.style.transform='rotateY('+(x*14)+'deg) rotateX('+(-y*14)+'deg) translateZ(10px)'});
+      c.addEventListener('pointerleave',function(){c.style.transform=''});
+    });
+  }
+
+  // formulář → mailto
+  document.getElementById('form').addEventListener('submit',function(e){
+    e.preventDefault();var f=e.target;
+    if(!f.jmeno.value.trim()){f.jmeno.focus();f.jmeno.style.borderColor='#e0775a';return}
+    var cfg=document.getElementById('cfgAttach');
+    var body='Jméno: '+f.jmeno.value+'\nTelefon: '+f.telefon.value+'\nE-mail: '+f.email.value+'\nZájem: '+f.typ.value+'\n\n'+f.zprava.value+
+      (cfg.classList.contains('on')?'\n\n--- Návrh z 3D konfigurátoru ---\n'+cfg.dataset.text:'');
+    location.href='mailto:tomas.hybl@centrum.cz?subject='+encodeURIComponent('Poptávka z webu – '+f.typ.value)+'&body='+encodeURIComponent(body);
+  });
+})();
+</script>
+
+<!-- 3D -->
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const easeOut = k=>1-Math.pow(1-k,3);
+const V = (x,y,z)=>new THREE.Vector3(x,y,z);
+
+try{
+  const c=document.createElement('canvas');
+  if(!(c.getContext('webgl2')||c.getContext('webgl'))) throw 0;
+}catch(e){ document.documentElement.classList.add('no-webgl'); throw new Error('WebGL nedostupné'); }
+
+/* ---------- procedurální textury ---------- */
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+const WOODS = {
+  orech:   {name:'Ořech americký', base:'#6e4a33', dark:'#3a2417', light:'#98694a', rough:.48, swatch:'linear-gradient(135deg,#8a5f42,#4a2e1e)'},
+  dub:     {name:'Dub přírodní',   base:'#c69d6e', dark:'#8c6339', light:'#e3c396', rough:.6,  swatch:'linear-gradient(135deg,#dcb887,#a57a4b)'},
+  buk:     {name:'Buk cink',       base:'#dcb48c', dark:'#b4845c', light:'#efd4b0', rough:.58, swatch:'linear-gradient(135deg,#efd1ab,#c2946a)'},
+  bila:    {name:'Bílá matná',     base:'#ebe7e0', painted:true, rough:.85, swatch:'linear-gradient(135deg,#fbf9f5,#d9d4cb)'},
+  antracit:{name:'Antracit mat',   base:'#35383c', painted:true, rough:.75, swatch:'linear-gradient(135deg,#4a4e53,#232528)'},
+};
+const texCache={};
+function woodTexture(key){
+  if(texCache[key]) return texCache[key];
+  const w=WOODS[key], S=1024, cv=document.createElement('canvas'); cv.width=cv.height=S;
+  const g=cv.getContext('2d'), r=rng(key.length*977+key.charCodeAt(0));
+  g.fillStyle=w.base; g.fillRect(0,0,S,S);
+  if(!w.painted){
+    // široké pruhy tónu
+    for(let i=0;i<14;i++){ g.globalAlpha=.06+r()*.08; g.fillStyle=r()<.5?w.dark:w.light; g.fillRect(r()*S,0,20+r()*120,S); }
+    // léta
+    for(let i=0;i<340;i++){
+      const x0=r()*S, amp=3+r()*16, fr=.002+r()*.008, ph=r()*6.28;
+      g.globalAlpha=.05+r()*.2; g.strokeStyle=r()<.62?w.dark:w.light; g.lineWidth=.4+r()*2.2;
+      g.beginPath();
+      for(let y=0;y<=S;y+=6){const x=x0+Math.sin(y*fr+ph)*amp+Math.sin(y*.035+ph*3)*.8; y?g.lineTo(x,y):g.moveTo(x,y)}
+      g.stroke();
+    }
+    // póry
+    g.globalAlpha=.12; g.fillStyle=w.dark;
+    for(let i=0;i<5000;i++) g.fillRect(r()*S,r()*S,1,2+r()*5);
+  } else {
+    g.globalAlpha=.035;
+    for(let i=0;i<9000;i++){ g.fillStyle=r()<.5?'#000':'#fff'; g.fillRect(r()*S,r()*S,2,2); }
+  }
+  g.globalAlpha=1;
+  const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  return texCache[key]=t;
+}
+function woodMat(key){ return new THREE.MeshStandardMaterial({map:woodTexture(key), roughness:WOODS[key].rough, metalness:0}); }
+
+function motifCanvas(kind){
+  const W=1600,H=1000, cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext('2d'), r=rng(kind==='les'?7:13);
+  if(kind==='les'){
+    let gr=g.createLinearGradient(0,0,0,H); gr.addColorStop(0,'#f3c58b'); gr.addColorStop(.55,'#e08a5a'); gr.addColorStop(1,'#6b3b3a');
+    g.fillStyle=gr; g.fillRect(0,0,W,H);
+    g.fillStyle='rgba(255,236,190,.9)'; g.beginPath(); g.arc(W*.62,H*.42,90,0,7); g.fill();
+    const layers=['#b8665a','#7f4046','#4e2a37','#2a1a24'];
+    layers.forEach((col,li)=>{ g.fillStyle=col; const base=H*(.5+li*.13), sc=.6+li*.35;
+      g.fillRect(0,base,W,H);
+      for(let x=-40;x<W+40;x+=18+r()*38*sc){ const h=(90+r()*140)*sc, w=(26+r()*20)*sc;
+        g.beginPath(); g.moveTo(x,base-h); g.lineTo(x-w,base+4); g.lineTo(x+w,base+4); g.fill(); } });
+  } else {
+    let gr=g.createLinearGradient(0,0,0,H); gr.addColorStop(0,'#9cc3d8'); gr.addColorStop(1,'#eef2ee');
+    g.fillStyle=gr; g.fillRect(0,0,W,H);
+    const cols=['#8aa7b8','#61808f','#3f5a66','#243841'];
+    cols.forEach((col,li)=>{ g.fillStyle=col; g.beginPath(); g.moveTo(0,H); let y=H*(.35+li*.14);
+      for(let x=0;x<=W;x+=40){ y+= (r()-.5)*90; y=clamp(y,H*(.2+li*.12),H*(.62+li*.1)); g.lineTo(x,y); }
+      g.lineTo(W,H); g.fill();
+      if(li===0){ g.fillStyle='rgba(255,255,255,.55)'; } });
+  }
+  return cv;
+}
+// náhledy motivů v UI
+const motifURLs={les:motifCanvas('les').toDataURL('image/jpeg',.7), hory:motifCanvas('hory').toDataURL('image/jpeg',.7)};
+document.querySelector('[data-m="les"]').style.backgroundImage=`url(${motifURLs.les})`;
+document.querySelector('[data-m="hory"]').style.backgroundImage=`url(${motifURLs.hory})`;
+document.getElementById('ofDoors').style.setProperty('--img',`url(${motifURLs.les})`);
+
+/* ---------- scéna ---------- */
+function makeStage(canvas, fov){
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=.95;
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  const scene=new THREE.Scene();
+  const pm=new THREE.PMREMGenerator(renderer);
+  scene.environment=pm.fromScene(new RoomEnvironment(renderer),.04).texture;
+  const camera=new THREE.PerspectiveCamera(fov,1,.05,60);
+  scene.add(new THREE.HemisphereLight(0xfff2e2,0x2a1d14,.45));
+  const key=new THREE.DirectionalLight(0xffe9d0,2.4); key.position.set(-3,5.5,4); key.castShadow=true;
+  key.shadow.mapSize.set(2048,2048); Object.assign(key.shadow.camera,{left:-4,right:4,top:4,bottom:-4,near:.5,far:20});
+  key.shadow.bias=-.0004; key.shadow.normalBias=.02; key.shadow.radius=6; scene.add(key);
+  const rim=new THREE.DirectionalLight(0xffb070,1.2); rim.position.set(4,2,-3); scene.add(rim);
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.ShadowMaterial({opacity:.38}));
+  floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+  const st={renderer,scene,camera,canvas,visible:false,w:0,h:0};
+  st.resize=()=>{const w=canvas.clientWidth,h=canvas.clientHeight; if(w===st.w&&h===st.h) return; st.w=w; st.h=h; renderer.setSize(w,h,false); camera.aspect=w/Math.max(h,1); camera.updateProjectionMatrix(); st.onResize&&st.onResize();};
+  new IntersectionObserver(es=>{st.visible=es[0].isIntersecting},{rootMargin:'100px'}).observe(canvas);
+  return st;
+}
+
+/* ---------- stavba skříňky ---------- */
+const metal=new THREE.MeshStandardMaterial({color:0x1d1d1f,metalness:.9,roughness:.32});
+const brass=new THREE.MeshStandardMaterial({color:0xc79a5a,metalness:1,roughness:.28});
+const backMat=new THREE.MeshStandardMaterial({color:0x2b221c,roughness:.9});
+
+function buildCabinet(o){
+  const {W,H,D=.58,wood,handle='lista',print=null,decor=false}=o;
+  const g=new THREE.Group(), parts=[], doors=[], t=.019, pl=Math.min(.08,H*.1), gap=.003;
+  const body=woodMat(wood);
+  const add=(obj,dir,delay)=>{obj.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=true}});
+    obj.userData.base=obj.position.clone(); obj.userData.dir=dir; obj.userData.delay=delay; g.add(obj); parts.push(obj); return obj;};
+  const box=(w,h,d,mat,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); return m;};
+
+  add(box(t,H,D,body,-W/2+t/2,H/2,0),V(-1,.15,0),0);
+  add(box(t,H,D,body, W/2-t/2,H/2,0),V(1,.15,0),.06);
+  add(box(W,t,D,body,0,H-t/2,0),V(0,1,0),.3);
+  add(box(W-2*t,t,D-.01,body,0,pl+t/2,.005),V(0,-.3,.4),.12);
+  add(box(W-2*t,H-pl-t,.008,backMat,0,pl+(H-pl-t)/2,-D/2+.004),V(0,0,-1),.18);
+  add(box(W-2*t,pl,t,backMat,0,pl/2,D/2-.05),V(0,-.4,.7),.1);
+  const nSh=H>1.3?3:(H>.75?1:0);
+  for(let k=0;k<nSh;k++){ const y=pl+(H-pl)*(k+1)/(nSh+1); add(box(W-2*t,t,D-.04,body,0,y,-.01),V(0,0,.9),.22+k*.04); }
+  // LED lišta + vnitřní světlo
+  const led=box(W-2*t-.06,.006,.014,new THREE.MeshBasicMaterial({color:0xffd9a0}),0,H-t-.005,D/2-.07);
+  add(led,V(0,1,0),.3);
+  const inner=new THREE.PointLight(0xffc27a,0,Math.max(W,H)*1.4,1.6); inner.position.set(0,H*.72,D*.1); g.add(inner);
+
+  // dvířka
+  const n=clamp(Math.round(W/.55),1,6), dw=(W-gap*(n+1))/n, dh=H-pl-gap*2, yc=pl+gap+dh/2, zf=D/2+t/2+.001;
+  let printTex=null;
+  if(print){ const img=print.image, ia=img.width/img.height, fa=W/dh; printTex={sx:Math.min(1,fa/ia), sy:Math.min(1,ia/fa)}; }
+  for(let i=0;i<n;i++){
+    const hl = n===1 ? true : i<n/2;
+    const x0=-W/2+gap+i*(dw+gap), hx=hl?x0:x0+dw;
+    const pivot=new THREE.Group(); pivot.position.set(hx,yc,zf);
+    let front=body;
+    if(print){ const tx=print.clone(); tx.needsUpdate=true; tx.colorSpace=THREE.SRGBColorSpace;
+      const {sx,sy}=printTex; tx.repeat.set(sx/n,sy); tx.offset.set((1-sx)/2+i*sx/n,(1-sy)/2);
+      front=new THREE.MeshStandardMaterial({map:tx,roughness:.35,metalness:0}); }
+    const door=new THREE.Mesh(new THREE.BoxGeometry(dw,dh,t),[body,body,body,body,front,body]);
+    door.position.x=hl?dw/2:-dw/2; door.userData.pivot=pivot; pivot.add(door);
+    if(handle==='lista'){ const hh=Math.min(.34,dh*.45); const hdl=box(.012,hh,.022,metal,(hl?dw-.045:-dw+.045),dh>.9?-dh*.12:0,t/2+.011); pivot.add(hdl); }
+    else if(handle==='knopka'){ const k=new THREE.Mesh(new THREE.CylinderGeometry(.016,.013,.028,24),brass); k.rotation.x=Math.PI/2; k.position.set(hl?dw-.05:-dw+.05,dh>.9?-dh*.12:dh*.3,t/2+.014); pivot.add(k); }
+    pivot.userData.open=0; pivot.userData.target=0; pivot.userData.sign=hl?-1:1;
+    add(pivot,V(0,0,1.3),.4+i*.07); doors.push(pivot);
+  }
+
+  if(decor){
+    const ceramic=new THREE.MeshStandardMaterial({color:0xe9e1d4,roughness:.35});
+    const pts=[]; for(let i=0;i<=20;i++){const y=i/20; pts.push(new THREE.Vector2(.02+.07*Math.sin(Math.PI*(y*.85+.1))+(y>.9?.01:0),y*.36));}
+    const vase=new THREE.Mesh(new THREE.LatheGeometry(pts,48),ceramic); vase.position.set(-W*.3,H,-.04); add(vase,V(0,1.4,0),.9);
+    // větvička
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(.004,.006,.5,6),new THREE.MeshStandardMaterial({color:0x4a3a28})); stem.position.set(-W*.3+.03,H+.55,-.04); stem.rotation.z=-.18; add(stem,V(0,1.6,0),1);
+    const leafM=new THREE.MeshStandardMaterial({color:0x6f7d4a,roughness:.7});
+    for(let i=0;i<9;i++){const l=new THREE.Mesh(new THREE.SphereGeometry(.028,10,8),leafM); l.scale.set(1,.35,.6); l.position.set(-W*.3+.03+Math.sin(i)*.07+(i*.012),H+.4+i*.045,-.04+Math.cos(i*2)*.04); l.rotation.z=i; add(l,V(0,1.7,0),1.05+i*.01);}
+    const bookCols=[0x2e4038,0xb9854f,0xd9cfc0,0x7a3b2c];
+    let by=H; bookCols.forEach((c,i)=>{const b=box(.34-i*.02,.04,.24,new THREE.MeshStandardMaterial({color:c,roughness:.8}),W*.26+(i%2)*.012,by+.02,.02); b.rotation.y=(i%2?.08:-.05); by+=.04; add(b,V(0,1.3,0),.95+i*.05);});
+    const bowl=new THREE.Mesh(new THREE.SphereGeometry(.06,32,16,0,Math.PI*2,Math.PI/2,Math.PI/2),brass); bowl.rotation.x=Math.PI; bowl.position.set(W*.26,by+.06,.02); bowl.scale.y=.5; add(bowl,V(0,1.5,0),1.15);
+  }
+  return {group:g,parts,doors,inner,W,H,D,n,t0:performance.now()/1000,explode:0,assembleFrom:REDUCE?0:1.2};
+}
+function disposeCabinet(c){ c.group.traverse(m=>{ if(m.isMesh){ m.geometry.dispose(); (Array.isArray(m.material)?m.material:[m.material]).forEach(mt=>{ if(mt!==metal&&mt!==brass&&mt!==backMat){ if(mt.map&&!Object.values(texCache).includes(mt.map)) mt.map.dispose(); mt.dispose(); } }); } }); }
+
+function updateCabinet(c,now,dt){
+  const el=now-c.t0; let openSum=0;
+  for(const p of c.parts){
+    const k=easeOut(clamp((el-p.userData.delay)/1.1,0,1));
+    const e=(1-k)*c.assembleFrom + c.explode;
+    p.position.copy(p.userData.base).addScaledVector(p.userData.dir,e);
+  }
+  for(const d of c.doors){
+    d.userData.open+= (d.userData.target-d.userData.open)*Math.min(1,dt*6);
+    d.rotation.y=d.userData.sign*d.userData.open*1.75;
+    openSum+=d.userData.open;
+  }
+  c.inner.intensity=(openSum/c.doors.length)*2.2*Math.max(c.W,1);
+}
+
+/* ---------- HERO ---------- */
+const hero=makeStage(document.getElementById('hero3d'),32);
+let heroCab=buildCabinet({W:1.95,H:.8,D:.48,wood:'orech',handle:'lista',decor:true});
+heroCab.assembleFrom=REDUCE?0:1.6;
+hero.scene.add(heroCab.group);
+const heroRig={rotY:-.42, tRotY:-.42, drag:false, lx:0};
+const mouse=new THREE.Vector2(-9,-9), ray=new THREE.Raycaster(); let parX=0,parY=0,tParX=0,tParY=0;
+hero.onResize=()=>{ const a=hero.camera.aspect; hero.camera.position.set(0,1.45,a<.9?4.9:5.1); };
+const hc=hero.canvas;
+hc.addEventListener('pointermove',e=>{ const r=hc.getBoundingClientRect(); mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  tParX=mouse.x; tParY=mouse.y; if(heroRig.drag){ heroRig.tRotY+= (e.clientX-heroRig.lx)*.008; heroRig.lx=e.clientX; } });
+hc.addEventListener('pointerleave',()=>{ mouse.set(-9,-9); heroRig.drag=false; });
+hc.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'){ heroRig.drag=true; heroRig.lx=e.clientX; hc.style.cursor='grabbing'; } });
+addEventListener('pointerup',()=>{ heroRig.drag=false; hc.style.cursor=''; });
+hc.addEventListener('click',e=>{ // tap na dotyku otevře/zavře dvířka
+  const r=hc.getBoundingClientRect(); const m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  ray.setFromCamera(m,hero.camera); const hit=ray.intersectObjects(heroCab.doors,true)[0];
+  if(hit&&TOUCH){ let p=hit.object; while(p&&!heroCab.doors.includes(p)) p=p.parent; if(p){ p.userData.pinned=!p.userData.pinned; } }
+});
+// intro: po sestavení se dvířka jednou otevřou
+if(!REDUCE) setTimeout(()=>{ heroCab.doors.forEach((d,i)=>setTimeout(()=>{d.userData.intro=true; setTimeout(()=>d.userData.intro=false,1500)},i*160)); },2600);
+
+function tickHero(now,dt){
+  const heroH=innerHeight, sp=clamp(scrollY/heroH,0,1);
+  parX+=(tParX-parX)*dt*3; parY+=(tParY-parY)*dt*3;
+  heroRig.rotY+=(heroRig.tRotY-heroRig.rotY)*Math.min(1,dt*5);
+  heroCab.group.rotation.y=heroRig.rotY + parX*.12 + sp*.9;
+  heroCab.explode=sp*.9;
+  const cam=hero.camera; const base=cam.position.z;
+  cam.position.x=parX*.25; cam.position.y=1.45+parY*.15-sp*.4;
+  cam.lookAt(0,.6-sp*.2,0);
+  // hover dvířek
+  let hovered=null;
+  if(!TOUCH&&mouse.x>-5&&!heroRig.drag){ ray.setFromCamera(mouse,cam); const hit=ray.intersectObjects(heroCab.doors,true)[0]; if(hit){ let p=hit.object; while(p&&!heroCab.doors.includes(p)) p=p.parent; hovered=p; } }
+  heroCab.doors.forEach(d=>d.userData.target=(d===hovered||d.userData.intro||d.userData.pinned)?1:0);
+  hc.style.cursor=heroRig.drag?'grabbing':(hovered?'pointer':'grab');
+  updateCabinet(heroCab,now,dt);
+}
+
+/* ---------- KONFIGURÁTOR ---------- */
+const cfgStage=makeStage(document.getElementById('config3d'),30);
+const state={W:160,H:200,wood:'dub',handle:'lista',motif:'none',photoTex:null,open:false,explode:false,spin:false};
+const motifTex={};
+function getMotif(m){
+  if(m==='none') return null;
+  if(m==='foto') return state.photoTex;
+  if(!motifTex[m]){ const t=new THREE.CanvasTexture(motifCanvas(m)); t.colorSpace=THREE.SRGBColorSpace; motifTex[m]=t; }
+  return motifTex[m];
+}
+let cab=null; const cfgRig={rotY:-.5,tRotY:-.5,drag:false,lx:0,camDist:5,tCamDist:5};
+function rebuild(keepAnim){
+  const prevExplode=cab?cab.explode:0;
+  if(cab){ cfgStage.scene.remove(cab.group); disposeCabinet(cab); }
+  cab=buildCabinet({W:state.W/100,H:state.H/100,wood:state.wood,handle:state.handle,print:getMotif(state.motif)});
+  if(keepAnim){ cab.assembleFrom=0; } else if(REDUCE) cab.assembleFrom=0;
+  cab.explode=prevExplode;
+  cab.doors.forEach(d=>{ d.userData.target=state.open?1:0; d.userData.open=keepAnim&&state.open?1:0; });
+  cfgStage.scene.add(cab.group);
+  fitCam(); updateUI();
+}
+function fitCam(){ const cam=cfgStage.camera, W=state.W/100, H=state.H/100; const vf=THREE.MathUtils.degToRad(cam.fov);
+  const needH=(H+.5)/(2*Math.tan(vf/2)), needW=(W+.9)/(2*Math.tan(vf/2)*cam.aspect);
+  cfgRig.tCamDist=Math.max(needH,needW,2.4)+.5; }
+cfgStage.onResize=fitCam;
+const cc=cfgStage.canvas;
+cc.addEventListener('pointerdown',e=>{ cfgRig.drag=true; cfgRig.lx=e.clientX; cfgRig.sx=e.clientX; cfgRig.sy=e.clientY; });
+addEventListener('pointermove',e=>{ if(!cfgRig.drag) return; cfgRig.tRotY+=(e.clientX-cfgRig.lx)*.01; cfgRig.lx=e.clientX; });
+addEventListener('pointerup',()=>cfgRig.drag=false);
+addEventListener('pointercancel',()=>cfgRig.drag=false);
+cc.addEventListener('click',e=>{ if(Math.abs(e.clientX-(cfgRig.sx??e.clientX))>6) return;
+  const r=cc.getBoundingClientRect(); const m=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  ray.setFromCamera(m,cfgStage.camera); const hit=ray.intersectObjects(cab.doors,true)[0];
+  if(hit){ let p=hit.object; while(p&&!cab.doors.includes(p)) p=p.parent; if(p) p.userData.target=p.userData.target?0:1; } });
+
+function tickCfg(now,dt){
+  if(state.spin&&!cfgRig.drag) cfgRig.tRotY+=dt*.35;
+  cfgRig.rotY+=(cfgRig.tRotY-cfgRig.rotY)*Math.min(1,dt*6);
+  cfgRig.camDist+=(cfgRig.tCamDist-cfgRig.camDist)*Math.min(1,dt*4);
+  cab.group.rotation.y=cfgRig.rotY;
+  cab.explode+=((state.explode?.55:0)-cab.explode)*Math.min(1,dt*4);
+  const H=state.H/100, cam=cfgStage.camera;
+  cam.position.set(0,H*.62+.35,cfgRig.camDist); cam.lookAt(0,H*.46,0);
+  updateCabinet(cab,now,dt);
+}
+
+/* UI konfigurátoru */
+const $=id=>document.getElementById(id);
+const woodsEl=$('woods');
+Object.entries(WOODS).forEach(([k,w])=>{ const b=document.createElement('button'); b.className='sw'; b.setAttribute('role','radio'); b.dataset.k=k; b.style.background=w.swatch; b.setAttribute('aria-label',w.name); b.title=w.name;
+  b.onclick=()=>{ state.wood=k; rebuild(true); }; woodsEl.appendChild(b); });
+$('rW').oninput=e=>{ state.W=+e.target.value; rebuild(true); };
+$('rH').oninput=e=>{ state.H=+e.target.value; rebuild(true); };
+$('handles').querySelectorAll('button').forEach(b=>b.onclick=()=>{ state.handle=b.dataset.v; rebuild(true); });
+const photoIn=$('photo');
+$('motifs').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  if(b.dataset.m==='foto'&&!state.photoTex){ photoIn.click(); return; }
+  state.motif=b.dataset.m; rebuild(true);
+});
+$('motifs').querySelector('[data-m="foto"]').addEventListener('dblclick',()=>photoIn.click());
+photoIn.onchange=()=>{ const f=photoIn.files[0]; if(!f) return; const url=URL.createObjectURL(f); const img=new Image();
+  img.onload=()=>{ // zmenšit pro GPU
+    const s=Math.min(1,2048/Math.max(img.width,img.height)); const cv=document.createElement('canvas'); cv.width=img.width*s|0; cv.height=img.height*s|0; cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    if(state.photoTex) state.photoTex.dispose(); state.photoTex=new THREE.CanvasTexture(cv); state.photoTex.colorSpace=THREE.SRGBColorSpace;
+    const up=$('motifs').querySelector('[data-m="foto"]'); up.style.backgroundImage=`url(${cv.toDataURL('image/jpeg',.6)})`; up.innerHTML='Vaše foto'; up.style.color='#fff'; up.style.justifyContent='flex-end'; up.style.textShadow='0 1px 3px rgba(0,0,0,.7)';
+    $('ofDoors').style.setProperty('--img',`url(${cv.toDataURL('image/jpeg',.7)})`);
+    state.motif='foto'; if(!state.open){ /* ukázat potisk zavřený */ } rebuild(true); URL.revokeObjectURL(url); };
+  img.src=url; };
+function toggleChip(id,key,fn){ const b=$(id); b.onclick=()=>{ state[key]=!state[key]; b.setAttribute('aria-pressed',state[key]); fn&&fn(); }; }
+toggleChip('btnOpen','open',()=>{ $('btnOpen').textContent=state.open?'Zavřít dvířka':'Otevřít dvířka'; cab.doors.forEach(d=>d.userData.target=state.open?1:0); });
+toggleChip('btnExplode','explode',()=>{ $('btnExplode').textContent=state.explode?'Složit':'Rozložit na díly'; });
+toggleChip('btnSpin','spin');
+
+function summary(){ const w=WOODS[state.wood]; const m={none:'bez potisku',les:'potisk Les',hory:'potisk Hory',foto:'potisk vlastní fotografií'}[state.motif];
+  const hn={lista:'úchytka lišta',knopka:'mosazná knopka',bez:'bez úchytek (tip-on)'}[state.handle];
+  return `Skříň ${state.W} × ${state.H} × 58 cm, ${w.name}, ${cab.n}× dvířka, ${hn}, ${m}`; }
+function updateUI(){
+  woodsEl.querySelectorAll('.sw').forEach(b=>b.setAttribute('aria-checked',b.dataset.k===state.wood));
+  $('woodName').textContent=WOODS[state.wood].name;
+  $('oW').textContent=state.W+' cm'; $('oH').textContent=state.H+' cm';
+  $('handles').querySelectorAll('button').forEach(b=>b.setAttribute('aria-checked',b.dataset.v===state.handle));
+  $('motifs').querySelectorAll('button').forEach(b=>b.setAttribute('aria-checked',b.dataset.m===state.motif));
+  $('dims').innerHTML=`<b>${state.W} × ${state.H} × 58 cm</b> · ${cab.n}× dvířka`;
+}
+$('sendCfg').addEventListener('click',()=>{ const a=$('cfgAttach'); const s=summary(); a.dataset.text=s+(state.motif==='foto'?'\n(Fotografii pro potisk přiložím do e-mailu.)':'');
+  a.innerHTML='✦ Připojený návrh: '+s; a.classList.add('on');
+  const sel=document.querySelector('#form select'); sel.value=state.motif!=='none'?'Overface potisk':'Vestavěná skříň'; });
+
+rebuild(false);
+
+/* ---------- smyčka ---------- */
+const clock=new THREE.Clock();
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),.05), now=performance.now()/1000;
+  if(hero.visible){ hero.resize(); tickHero(now,dt); hero.renderer.render(hero.scene,hero.camera); }
+  if(cfgStage.visible){ if(!cfgStage.started){ cfgStage.started=true; if(!REDUCE){ cab.t0=now; cab.assembleFrom=1.2; } } cfgStage.resize(); tickCfg(now,dt); cfgStage.renderer.render(cfgStage.scene,cfgStage.camera); }
+}
+hero.resize(); cfgStage.resize(); loop();
+</script>
+</body>
+</html>
