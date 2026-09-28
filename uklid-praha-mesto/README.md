@@ -35,6 +35,11 @@ Data i fotky jsou v databázi Supabase (bezplatný tarif stačí), takže zázna
 Fotky leží ve veřejném úložišti pod náhodnými cestami – zobrazí se jen tomu, kdo zná odkaz.
 Zaměstnanci musí být v tabulce `employees`, jinak se do sekce nedostanou.
 
+## Spuštění lokálně
+Stačí rozbalit a otevřít `index.html` dvojklikem (doporučen Chrome / Edge). Server není potřeba.
+
 ## Technika
-Čisté HTML/CSS/JS bez sestavování. 3D bubliny: Three.js r128 (cdnjs), vlastní shader, pauza mimo obrazovku,
+HTML/CSS/JS. Zdrojové skripty jsou v `assets/js/*.js`, prohlížeč načítá sestavené `assets/js/dist/*.js`
+(aby web šel otevřít i přímo ze souboru). Po úpravě zdrojů spusťte `npm install && npm run build`.
+`assets/js/config.js` je běžný skript – jeho úprava sestavení nevyžaduje. 3D bubliny: Three.js r128 (cdnjs), vlastní shader, pauza mimo obrazovku,
 respektuje `prefers-reduced-motion`. Fotky se před nahráním zmenšují na max. 1600 px (JPEG).

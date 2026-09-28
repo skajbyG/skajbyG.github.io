@@ -6,7 +6,7 @@
 //     end_time:'HH:MM', tasks:[string], note, photos:[{ id, url, kind:'pred'|'po' }],
 //     client?:{ name }, place?:{ label, address } }
 
-import { CONFIG } from './config.js';
+const CONFIG = window.UPM_CONFIG; // nastavení z assets/js/config.js
 import { uuid, makeAccessCode, normalizeCode, storage, toISO } from './util.js';
 
 export const isDemo = () => CONFIG.backend !== 'supabase' || !CONFIG.supabaseUrl || !CONFIG.supabaseAnonKey;

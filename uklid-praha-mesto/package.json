@@ -1,0 +1,10 @@
+{
+  "name": "uklid-praha-mesto",
+  "private": true,
+  "scripts": {
+    "build": "esbuild assets/js/main.js assets/js/kontrola.js assets/js/zamestnanci.js --bundle --format=iife --target=es2019 --external:https://* --outdir=assets/js/dist --log-level=warning"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

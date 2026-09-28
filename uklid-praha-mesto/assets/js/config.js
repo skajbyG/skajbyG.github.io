@@ -1,11 +1,11 @@
-// Nastavení webu Úklid Praha Město.
+// Nastavení webu Úklid Praha Město. (Běžný skript – po úpravě není potřeba nic sestavovat.)
 //
 // backend: 'demo'     – vše se ukládá jen v tomto prohlížeči (IndexedDB). Vhodné pro
 //                       vyzkoušení; data NEJSOU sdílená mezi zařízeními.
 //          'supabase' – ostrý provoz. Fotky a záznamy se ukládají do Supabase, takže
 //                       zaměstnanec nahraje z mobilu a klient to hned uvidí u sebe.
 //                       Návod je v README.md a databázové schéma v supabase/schema.sql.
-export const CONFIG = {
+window.UPM_CONFIG = {
   backend: 'demo',
   supabaseUrl: '',      // např. 'https://abcd1234.supabase.co'
   supabaseAnonKey: '',  // veřejný (anon / publishable) klíč projektu

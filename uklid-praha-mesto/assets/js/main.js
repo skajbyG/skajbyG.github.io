@@ -1,5 +1,5 @@
 import { initBubbles } from './bubbles.js';
-import { CONFIG } from './config.js';
+const CONFIG = window.UPM_CONFIG; // nastavení z assets/js/config.js
 
 // Hlavička: stín po odscrollování + mobilní menu
 const header = document.querySelector('.site-header');

@@ -1,7 +1,7 @@
 import { store, isDemo, DEMO_CODE } from './store.js';
 import { initBubbles } from './bubbles.js';
 import { openGallery, openCompare } from './lightbox.js';
-import { CONFIG } from './config.js';
+const CONFIG = window.UPM_CONFIG; // nastavení z assets/js/config.js
 import {
   icon, esc, fmt, minutesBetween, fmtDuration, fmtHours, plural, firstName, normalizeCode, storage, mapLink, todayISO,
 } from './util.js';
