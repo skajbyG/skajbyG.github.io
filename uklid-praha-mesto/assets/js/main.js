@@ -23,7 +23,11 @@ const io = new IntersectionObserver((entries) => {
     if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
   });
 }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+document.querySelectorAll('.reveal').forEach((el) => {
+  // co je vidět hned po načtení, ukázat bez čekání
+  if (el.getBoundingClientRect().top < window.innerHeight) el.classList.add('in');
+  else io.observe(el);
+});
 
 // 3D bubliny v úvodu
 initBubbles(document.getElementById('hero-canvas'), { layout: 'hero' });
@@ -49,6 +53,7 @@ form.addEventListener('submit', (e) => {
   e.preventDefault();
   const d = Object.fromEntries(new FormData(form));
   if (!d.name.trim() || !d.phone.trim()) {
+    errBox.className = 'alert alert-error';
     errBox.textContent = 'Vyplňte prosím jméno a telefon, ať se vám můžeme ozvat.';
     errBox.hidden = false;
     (d.name.trim() ? form.elements.phone : form.elements.name).focus();
@@ -65,6 +70,9 @@ form.addEventListener('submit', (e) => {
   const body = d.message.trim() ? `${details}\n\n${d.message.trim()}` : details;
   const subject = `Poptávka – ${d.service}`;
   window.location.href = `mailto:${CONFIG.company.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  errBox.className = 'alert alert-info';
+  errBox.textContent = `Otevíráme váš e-mail s připravenou zprávou. Pokud se neotevřel, napište nám na ${CONFIG.company.email} nebo zavolejte na ${CONFIG.company.phone}.`;
+  errBox.hidden = false;
 });
 
 document.getElementById('year').textContent = new Date().getFullYear();

@@ -2,7 +2,7 @@ import { store, isDemo } from './store.js';
 import { initBubbles } from './bubbles.js';
 import { openGallery } from './lightbox.js';
 import {
-  icon, esc, fmt, todayISO, nowHM, minutesBetween, fmtDuration, firstName, uuid, toast, copyText, compressImage,
+  icon, esc, fmt, askConfirm, todayISO, nowHM, minutesBetween, fmtDuration, firstName, uuid, toast, copyText, compressImage,
 } from './util.js';
 
 const $ = (id) => document.getElementById(id);
@@ -303,10 +303,10 @@ form.addEventListener('submit', async (e) => {
   if (!data.date) return showFormError('Vyplňte datum.');
   if (!data.start_time || !data.end_time) return showFormError('Vyplňte začátek i konec úklidu.');
   if (data.end_time === data.start_time) return showFormError('Konec musí být jiný než začátek.');
-  if (data.end_time < data.start_time && !confirm('Konec je dřív než začátek – úklid probíhal přes půlnoc?')) return;
+  if (data.end_time < data.start_time && !(await askConfirm('Konec je dřív než začátek. Probíhal úklid přes půlnoc?', { ok: 'Ano, přes půlnoc', cancel: 'Opravit čas' }))) return;
   if (state.photos.some((p) => p.processing)) return showFormError('Počkejte prosím, fotky se ještě zpracovávají.');
   if (!data.tasks.length) return showFormError('Označte alespoň jednu provedenou práci.');
-  if (!state.photos.length && !confirm('Neukládáte žádné fotky. Klient uvidí jen čas a seznam prací. Pokračovat?')) return;
+  if (!state.photos.length && !(await askConfirm('Neukládáte žádné fotky. Klient uvidí jen čas a seznam prací.', { ok: 'Uložit bez fotek', cancel: 'Přidat fotky' }))) return;
   showFormError('');
 
   const btn = $('save');
@@ -381,7 +381,7 @@ $('records').addEventListener('click', async (e) => {
     openGallery(r.photos.map((p) => ({ url: p.url, caption: `${p.kind === 'pred' ? 'Před' : 'Po'} · ${r.client?.name || ''} · ${fmt.short(r.date)}` })), Number(img.dataset.i));
   } else if (del) {
     const r = records.find((x) => x.id === del.dataset.del);
-    if (!confirm(`Opravdu smazat úklid ${fmt.short(r.date)} u klienta ${r.client?.name || ''}? Klient ho přestane vidět.`)) return;
+    if (!(await askConfirm(`Smazat úklid ${fmt.short(r.date)} u klienta ${r.client?.name || ''}? Klient ho přestane vidět.`, { ok: 'Smazat', danger: true }))) return;
     try {
       await s.deleteCleaning(r.id);
       toast('Záznam smazán');

@@ -105,7 +105,7 @@ p { margin: 0; }
 
 /* ---------- Header ---------- */
 .site-header {
-  position: sticky; top: 0; z-index: 50;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
   background: color-mix(in srgb, var(--bg) 78%, transparent);
   backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px);
   border-bottom: 1px solid transparent;
@@ -387,7 +387,7 @@ a.c-line:hover { border-color: var(--accent); box-shadow: var(--shadow-s); }
    Portály (kontrola úklidu + zaměstnanci)
    ========================================================================== */
 .portal-body { min-height: 100vh; display: flex; flex-direction: column; }
-.portal-header { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 40; }
+.portal-header { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; }
 .portal-header .header-inner { height: 66px; }
 .portal-tag { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-ink); }
 .portal-tag.staff { background: #e6e9f7; color: var(--indigo); }
@@ -594,5 +594,10 @@ a.c-line:hover { border-color: var(--accent); box-shadow: var(--shadow-s); }
 
 .mode-banner { background: #fdf7ea; border-bottom: 1px solid #f3e4c1; color: #6b4f1a; font-size: 13.5px; padding: 8px 0; text-align: center; }
 .mode-banner b { font-weight: 800; }
+
+.confirm-backdrop { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 16px; background: rgba(8, 22, 31, .45); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.confirm-box { width: min(420px, 100%); background: var(--surface); border-radius: 20px; padding: 24px; box-shadow: var(--shadow-l); }
+.confirm-box p { font-weight: 600; font-size: 16px; line-height: 1.5; }
+.confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 
 [hidden] { display: none !important; }

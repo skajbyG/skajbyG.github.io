@@ -195,3 +195,34 @@ export async function compressImage(file, max = 1600, quality = 0.82) {
   if (!blob) throw new Error('Fotku se nepodařilo zpracovat.');
   return blob;
 }
+
+// Potvrzovací dialog přímo ve stránce (systémové confirm() nefunguje všude).
+export function askConfirm(message, { ok = 'Pokračovat', cancel = 'Zpět', danger = false } = {}) {
+  return new Promise((resolve) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'confirm-backdrop';
+    wrap.innerHTML = `<div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-msg">
+        <p id="confirm-msg">${esc(message)}</p>
+        <div class="confirm-actions">
+          <button type="button" class="btn btn-sm" data-v="0">${esc(cancel)}</button>
+          <button type="button" class="btn btn-sm ${danger ? 'btn-danger' : 'btn-primary'}" data-v="1">${esc(ok)}</button>
+        </div>
+      </div>`;
+    const prevFocus = document.activeElement;
+    const done = (v) => {
+      document.removeEventListener('keydown', onKey);
+      wrap.remove();
+      if (prevFocus) prevFocus.focus();
+      resolve(v);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') done(false); };
+    wrap.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]');
+      if (b) done(b.dataset.v === '1');
+      else if (e.target === wrap) done(false);
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(wrap);
+    wrap.querySelector('[data-v="1"]').focus();
+  });
+}

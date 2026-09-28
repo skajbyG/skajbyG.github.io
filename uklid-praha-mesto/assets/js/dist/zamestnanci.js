@@ -214,6 +214,37 @@
     if (!blob) throw new Error("Fotku se nepoda\u0159ilo zpracovat.");
     return blob;
   }
+  function askConfirm(message, { ok = "Pokra\u010Dovat", cancel = "Zp\u011Bt", danger = false } = {}) {
+    return new Promise((resolve) => {
+      const wrap = document.createElement("div");
+      wrap.className = "confirm-backdrop";
+      wrap.innerHTML = `<div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-msg">
+        <p id="confirm-msg">${esc(message)}</p>
+        <div class="confirm-actions">
+          <button type="button" class="btn btn-sm" data-v="0">${esc(cancel)}</button>
+          <button type="button" class="btn btn-sm ${danger ? "btn-danger" : "btn-primary"}" data-v="1">${esc(ok)}</button>
+        </div>
+      </div>`;
+      const prevFocus = document.activeElement;
+      const done = (v) => {
+        document.removeEventListener("keydown", onKey);
+        wrap.remove();
+        if (prevFocus) prevFocus.focus();
+        resolve(v);
+      };
+      const onKey = (e) => {
+        if (e.key === "Escape") done(false);
+      };
+      wrap.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-v]");
+        if (b) done(b.dataset.v === "1");
+        else if (e.target === wrap) done(false);
+      });
+      document.addEventListener("keydown", onKey);
+      document.body.appendChild(wrap);
+      wrap.querySelector('[data-v="1"]').focus();
+    });
+  }
 
   // assets/js/store.js
   var CONFIG = window.UPM_CONFIG;
@@ -1235,10 +1266,10 @@
     if (!data.date) return showFormError("Vypl\u0148te datum.");
     if (!data.start_time || !data.end_time) return showFormError("Vypl\u0148te za\u010D\xE1tek i konec \xFAklidu.");
     if (data.end_time === data.start_time) return showFormError("Konec mus\xED b\xFDt jin\xFD ne\u017E za\u010D\xE1tek.");
-    if (data.end_time < data.start_time && !confirm("Konec je d\u0159\xEDv ne\u017E za\u010D\xE1tek \u2013 \xFAklid prob\xEDhal p\u0159es p\u016Flnoc?")) return;
+    if (data.end_time < data.start_time && !await askConfirm("Konec je d\u0159\xEDv ne\u017E za\u010D\xE1tek. Prob\xEDhal \xFAklid p\u0159es p\u016Flnoc?", { ok: "Ano, p\u0159es p\u016Flnoc", cancel: "Opravit \u010Das" })) return;
     if (state.photos.some((p) => p.processing)) return showFormError("Po\u010Dkejte pros\xEDm, fotky se je\u0161t\u011B zpracov\xE1vaj\xED.");
     if (!data.tasks.length) return showFormError("Ozna\u010Dte alespo\u0148 jednu provedenou pr\xE1ci.");
-    if (!state.photos.length && !confirm("Neukl\xE1d\xE1te \u017E\xE1dn\xE9 fotky. Klient uvid\xED jen \u010Das a seznam prac\xED. Pokra\u010Dovat?")) return;
+    if (!state.photos.length && !await askConfirm("Neukl\xE1d\xE1te \u017E\xE1dn\xE9 fotky. Klient uvid\xED jen \u010Das a seznam prac\xED.", { ok: "Ulo\u017Eit bez fotek", cancel: "P\u0159idat fotky" })) return;
     showFormError("");
     const btn = $("save");
     const bar = $("progress");
@@ -1317,7 +1348,7 @@
       }), Number(img.dataset.i));
     } else if (del) {
       const r = records.find((x) => x.id === del.dataset.del);
-      if (!confirm(`Opravdu smazat \xFAklid ${fmt.short(r.date)} u klienta ${((_a = r.client) == null ? void 0 : _a.name) || ""}? Klient ho p\u0159estane vid\u011Bt.`)) return;
+      if (!await askConfirm(`Smazat \xFAklid ${fmt.short(r.date)} u klienta ${((_a = r.client) == null ? void 0 : _a.name) || ""}? Klient ho p\u0159estane vid\u011Bt.`, { ok: "Smazat", danger: true })) return;
       try {
         await s.deleteCleaning(r.id);
         toast("Z\xE1znam smaz\xE1n");

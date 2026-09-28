@@ -229,7 +229,10 @@
       }
     });
   }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
-  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+  document.querySelectorAll(".reveal").forEach((el) => {
+    if (el.getBoundingClientRect().top < window.innerHeight) el.classList.add("in");
+    else io.observe(el);
+  });
   initBubbles(document.getElementById("hero-canvas"), { layout: "hero" });
   var phone = document.getElementById("tilt-phone");
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -251,6 +254,7 @@
     e.preventDefault();
     const d = Object.fromEntries(new FormData(form));
     if (!d.name.trim() || !d.phone.trim()) {
+      errBox.className = "alert alert-error";
       errBox.textContent = "Vypl\u0148te pros\xEDm jm\xE9no a telefon, a\u0165 se v\xE1m m\u016F\u017Eeme ozvat.";
       errBox.hidden = false;
       (d.name.trim() ? form.elements.phone : form.elements.name).focus();
@@ -269,6 +273,9 @@
 ${d.message.trim()}` : details;
     const subject = `Popt\xE1vka \u2013 ${d.service}`;
     window.location.href = `mailto:${CONFIG.company.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    errBox.className = "alert alert-info";
+    errBox.textContent = `Otev\xEDr\xE1me v\xE1\u0161 e-mail s p\u0159ipravenou zpr\xE1vou. Pokud se neotev\u0159el, napi\u0161te n\xE1m na ${CONFIG.company.email} nebo zavolejte na ${CONFIG.company.phone}.`;
+    errBox.hidden = false;
   });
   document.getElementById("year").textContent = (/* @__PURE__ */ new Date()).getFullYear();
 })();
