@@ -752,8 +752,8 @@
     // tenk\xE1 vrstva m\xFDdla \u2192 duhov\xE9 p\u0159elivy
     float film = ndv * 1.3 + vP.y * 0.35 + sin(vP.x * 2.2 + uTime * 0.35 + uSeed) * 0.18 + uSeed * 0.17;
     vec3 iri = pal(film);
-    vec3 brand = mix(vec3(0.05, 0.52, 0.49), vec3(0.27, 0.34, 0.72), 0.5 + 0.5 * sin(film * 2.6));
-    vec3 col = mix(brand, iri, 0.38);
+    vec3 brand = mix(vec3(0.20, 0.30, 0.27), vec3(0.05, 0.42, 0.35), 0.5 + 0.5 * sin(film * 2.6));
+    vec3 col = mix(brand, iri, 0.32);
 
     float alpha = fres * 0.72 + 0.035;
 
@@ -788,33 +788,9 @@
     scene.add(group);
     const geo = new THREE.SphereGeometry(1, 72, 54);
     const layouts = {
-      hero: [
-        [1.6, 0.6, 0, 2.25],
-        [-1.4, 2.4, -2, 0.9],
-        [3.9, 2.8, -3, 0.75],
-        [3.4, -1.9, 1, 0.95],
-        [-0.4, -2.3, 1.5, 0.55],
-        [-2.6, -0.4, -4, 0.7],
-        [0.3, 3.6, -5, 0.45],
-        [5, 0.4, -6, 0.6],
-        [-3.2, 3.2, -1, 0.35]
-      ],
-      heroMobile: [
-        [1.4, -0.4, 0, 1.7],
-        [-2, 1.6, -2, 0.7],
-        [3, 2.4, -3, 0.55],
-        [-1.2, -2.8, 1, 0.5],
-        [2.8, -3, -1, 0.6]
-      ],
-      gate: [
-        [-4.6, 2.2, -1, 1.5],
-        [4.8, -1.8, -1, 1.9],
-        [5.2, 3.2, -4, 0.7],
-        [-5.4, -3, -2, 0.9],
-        [-2.6, 4.2, -5, 0.5],
-        [2.2, -4.4, -3, 0.55],
-        [0.4, 4.6, -7, 0.4]
-      ]
+      hero: [[1, 0.9, 0, 2.2]],
+      heroMobile: [[0, 0, 0, 2.6]],
+      gate: [[5.4, -1.6, -1, 2.6]]
     };
     let bubbles2 = [];
     const build = (key) => {
@@ -881,7 +857,9 @@
         const s2 = b.speed;
         b.mesh.position.x = b.base.x + Math.sin(time * s2 * 0.8 + b.phase) * 0.18 + pointer.x * (0.25 + b.base.z * 0.04);
         b.mesh.position.y = b.base.y + Math.sin(time * s2 + b.phase) * 0.32 - pointer.y * 0.15;
-        b.mesh.rotation.y = time * 0.1 + b.phase;
+        b.mesh.rotation.y = time * 0.08 + b.phase + pointer.x * 0.9;
+        b.mesh.rotation.x = pointer.y * 0.6;
+        b.mesh.scale.setScalar(b.r * (1 + Math.sin(time * 0.6 + b.phase) * 0.012));
         b.mesh.material.uniforms.uTime.value = time;
       });
       renderer.render(scene, camera);

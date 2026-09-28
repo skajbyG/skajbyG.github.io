@@ -32,20 +32,6 @@ document.querySelectorAll('.reveal').forEach((el) => {
 // 3D bubliny v úvodu
 initBubbles(document.getElementById('hero-canvas'), { layout: 'hero' });
 
-// Jemný 3D náklon telefonu podle kurzoru
-const phone = document.getElementById('tilt-phone');
-const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-if (phone && !reduce && window.matchMedia('(hover: hover)').matches) {
-  const stage = phone.parentElement;
-  stage.addEventListener('pointermove', (e) => {
-    const r = stage.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    phone.style.transform = `rotateY(${-16 + x * 14}deg) rotateX(${8 - y * 10}deg) rotateZ(1deg)`;
-  });
-  stage.addEventListener('pointerleave', () => { phone.style.transform = ''; });
-}
-
 // Poptávkový formulář → předvyplněný e-mail
 const form = document.getElementById('inquiry');
 const errBox = document.getElementById('inquiry-error');

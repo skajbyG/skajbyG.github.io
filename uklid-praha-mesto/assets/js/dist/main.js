@@ -39,8 +39,8 @@
     // tenk\xE1 vrstva m\xFDdla \u2192 duhov\xE9 p\u0159elivy
     float film = ndv * 1.3 + vP.y * 0.35 + sin(vP.x * 2.2 + uTime * 0.35 + uSeed) * 0.18 + uSeed * 0.17;
     vec3 iri = pal(film);
-    vec3 brand = mix(vec3(0.05, 0.52, 0.49), vec3(0.27, 0.34, 0.72), 0.5 + 0.5 * sin(film * 2.6));
-    vec3 col = mix(brand, iri, 0.38);
+    vec3 brand = mix(vec3(0.20, 0.30, 0.27), vec3(0.05, 0.42, 0.35), 0.5 + 0.5 * sin(film * 2.6));
+    vec3 col = mix(brand, iri, 0.32);
 
     float alpha = fres * 0.72 + 0.035;
 
@@ -67,7 +67,7 @@
       return null;
     }
     renderer.setClearColor(0, 0);
-    const reduce2 = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
     camera.position.set(0, 0, 14);
@@ -75,33 +75,9 @@
     scene.add(group);
     const geo = new THREE.SphereGeometry(1, 72, 54);
     const layouts = {
-      hero: [
-        [1.6, 0.6, 0, 2.25],
-        [-1.4, 2.4, -2, 0.9],
-        [3.9, 2.8, -3, 0.75],
-        [3.4, -1.9, 1, 0.95],
-        [-0.4, -2.3, 1.5, 0.55],
-        [-2.6, -0.4, -4, 0.7],
-        [0.3, 3.6, -5, 0.45],
-        [5, 0.4, -6, 0.6],
-        [-3.2, 3.2, -1, 0.35]
-      ],
-      heroMobile: [
-        [1.4, -0.4, 0, 1.7],
-        [-2, 1.6, -2, 0.7],
-        [3, 2.4, -3, 0.55],
-        [-1.2, -2.8, 1, 0.5],
-        [2.8, -3, -1, 0.6]
-      ],
-      gate: [
-        [-4.6, 2.2, -1, 1.5],
-        [4.8, -1.8, -1, 1.9],
-        [5.2, 3.2, -4, 0.7],
-        [-5.4, -3, -2, 0.9],
-        [-2.6, 4.2, -5, 0.5],
-        [2.2, -4.4, -3, 0.55],
-        [0.4, 4.6, -7, 0.4]
-      ]
+      hero: [[1, 0.9, 0, 2.2]],
+      heroMobile: [[0, 0, 0, 2.6]],
+      gate: [[5.4, -1.6, -1, 2.6]]
     };
     let bubbles = [];
     const build = (key) => {
@@ -168,7 +144,9 @@
         const s = b.speed;
         b.mesh.position.x = b.base.x + Math.sin(time * s * 0.8 + b.phase) * 0.18 + pointer.x * (0.25 + b.base.z * 0.04);
         b.mesh.position.y = b.base.y + Math.sin(time * s + b.phase) * 0.32 - pointer.y * 0.15;
-        b.mesh.rotation.y = time * 0.1 + b.phase;
+        b.mesh.rotation.y = time * 0.08 + b.phase + pointer.x * 0.9;
+        b.mesh.rotation.x = pointer.y * 0.6;
+        b.mesh.scale.setScalar(b.r * (1 + Math.sin(time * 0.6 + b.phase) * 0.012));
         b.mesh.material.uniforms.uTime.value = time;
       });
       renderer.render(scene, camera);
@@ -181,7 +159,7 @@
       raf = requestAnimationFrame(loop);
     };
     const start = () => {
-      if (!running && !reduce2 && visible && !document.hidden) {
+      if (!running && !reduce && visible && !document.hidden) {
         running = true;
         raf = requestAnimationFrame(loop);
       }
@@ -198,7 +176,7 @@
     }).observe(canvas);
     document.addEventListener("visibilitychange", () => document.hidden ? stop() : start());
     resize();
-    if (reduce2) render(4e3);
+    if (reduce) render(4e3);
     else start();
     canvas.classList.add("ready");
     return { stop, start };
@@ -234,20 +212,6 @@
     else io.observe(el);
   });
   initBubbles(document.getElementById("hero-canvas"), { layout: "hero" });
-  var phone = document.getElementById("tilt-phone");
-  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (phone && !reduce && window.matchMedia("(hover: hover)").matches) {
-    const stage = phone.parentElement;
-    stage.addEventListener("pointermove", (e) => {
-      const r = stage.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width - 0.5;
-      const y = (e.clientY - r.top) / r.height - 0.5;
-      phone.style.transform = `rotateY(${-16 + x * 14}deg) rotateX(${8 - y * 10}deg) rotateZ(1deg)`;
-    });
-    stage.addEventListener("pointerleave", () => {
-      phone.style.transform = "";
-    });
-  }
   var form = document.getElementById("inquiry");
   var errBox = document.getElementById("inquiry-error");
   form.addEventListener("submit", (e) => {
