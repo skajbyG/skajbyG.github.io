@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kontrola úklidu – Úklid Praha Město</title>
+  <meta name="description" content="Zkontrolujte si své úklidy: kdy, kde a jak dlouho jsme uklízeli, včetně fotografií před a po.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0f2a3a">
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..600,0..100;1,9..144,400..600,0..100&family=Manrope:wght@400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="portal-body">
+
+<div class="mode-banner" id="mode-banner" hidden><b>Ukázkový režim:</b> data jsou jen v tomto prohlížeči a slouží k vyzkoušení.</div>
+
+<header class="portal-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html" aria-label="Úklid Praha Město – hlavní stránka">
+      <img class="brand-mark" src="assets/img/logo.svg" alt="" width="38" height="38">
+      <span class="brand-text"><strong>Úklid Praha Město</strong><span>Kontrola úklidu</span></span>
+    </a>
+    <div class="portal-head-right">
+      <a class="btn btn-sm btn-ghost hide-sm" href="index.html">Zpět na web</a>
+      <button class="btn btn-sm" id="logout" type="button" hidden>Odhlásit</button>
+    </div>
+  </div>
+</header>
+
+<!-- Přihlášení kódem -->
+<section class="gate" id="gate">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <canvas class="gate-canvas" id="gate-canvas" aria-hidden="true"></canvas>
+  <div class="gate-card">
+    <span class="eyebrow">Pro naše klienty</span>
+    <h1>Kontrola úklidu</h1>
+    <p>Zadejte přístupový kód, který jste od nás obdrželi. Uvidíte všechny své úklidy – kdy, kde, jak dlouho a s fotkami.</p>
+    <form id="code-form" novalidate>
+      <label class="field">
+        <span class="visually-hidden">Přístupový kód</span>
+        <input class="code-input" id="code" name="code" placeholder="UPM-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+      </label>
+      <div class="alert alert-error" id="code-error" role="alert" hidden></div>
+      <button class="btn btn-primary btn-block" type="submit" id="code-submit">Zobrazit mé úklidy</button>
+    </form>
+    <div class="demo-hint" id="demo-hint" hidden>Chcete si to vyzkoušet? Použijte ukázkový kód <button type="button" id="use-demo">DEMO-2026</button>.</div>
+    <p class="gate-foot">Kód jste nedostali nebo jste ho ztratili?<br><a href="tel:+420775724032">+420 775 724 032</a> · <a href="mailto:uklidprahamesto@seznam.cz">uklidprahamesto@seznam.cz</a></p>
+  </div>
+</section>
+
+<!-- Přehled úklidů -->
+<main class="dash" id="dash" hidden>
+  <div class="container">
+    <div class="dash-head">
+      <div>
+        <span class="eyebrow">Přehled úklidů</span>
+        <h1 id="client-name">Dobrý den</h1>
+        <p id="dash-sub"></p>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="toolbar">
+      <label class="field"><span class="visually-hidden">Místo</span><select id="filter-place"></select></label>
+      <label class="field"><span class="visually-hidden">Měsíc</span><select id="filter-month"></select></label>
+    </div>
+
+    <div id="timeline"></div>
+  </div>
+</main>
+
+<!-- Prohlížeč fotek -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Fotografie z úklidu">
+  <div class="lb-top">
+    <span id="lb-caption"></span>
+    <button class="lb-btn" type="button" id="lb-close" aria-label="Zavřít"></button>
+  </div>
+  <div class="lb-stage">
+    <button class="lb-btn lb-prev" type="button" id="lb-prev" aria-label="Předchozí fotka"></button>
+    <div class="lb-imgwrap" id="lb-content"></div>
+    <button class="lb-btn lb-next" type="button" id="lb-next" aria-label="Další fotka"></button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+<script type="module" src="assets/js/kontrola.js"></script>
+</body>
+</html>

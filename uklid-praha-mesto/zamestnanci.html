@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zaměstnanci – Úklid Praha Město</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0f2a3a">
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..600,0..100;1,9..144,400..600,0..100&family=Manrope:wght@400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="portal-body">
+
+<div class="mode-banner" id="mode-banner" hidden><b>Ukázkový režim:</b> záznamy se ukládají jen v tomto prohlížeči. Pro ostrý provoz připojte databázi (viz README).</div>
+
+<header class="portal-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html" aria-label="Úklid Praha Město – hlavní stránka">
+      <img class="brand-mark" src="assets/img/logo.svg" alt="" width="38" height="38">
+      <span class="brand-text"><strong>Úklid Praha Město</strong><span>Zaměstnanecká sekce</span></span>
+    </a>
+    <div class="portal-head-right">
+      <span class="portal-tag staff hide-sm" id="who" hidden></span>
+      <button class="btn btn-sm" id="logout" type="button" hidden>Odhlásit</button>
+    </div>
+  </div>
+</header>
+
+<!-- Přihlášení -->
+<section class="gate" id="gate">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <canvas class="gate-canvas" id="gate-canvas" aria-hidden="true"></canvas>
+  <div class="gate-card">
+    <span class="eyebrow">Pro náš tým</span>
+    <h1>Přihlášení</h1>
+    <p>Po úklidu tu zapíšete čas, provedené práce a nahrajete fotky. Klient je hned uvidí ve své kontrole úklidu.</p>
+    <form id="login-form" novalidate>
+      <div id="login-demo" hidden>
+        <label class="field"><span>Vaše jméno</span><input name="name" autocomplete="name" placeholder="např. Jana Dvořáková"></label>
+        <label class="field" style="margin-top:14px"><span>PIN</span><input name="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="••••"></label>
+      </div>
+      <div id="login-live" hidden>
+        <label class="field"><span>E-mail</span><input name="email" type="email" autocomplete="username"></label>
+        <label class="field" style="margin-top:14px"><span>Heslo</span><input name="password" type="password" autocomplete="current-password"></label>
+      </div>
+      <div class="alert alert-error" id="login-error" role="alert" hidden></div>
+      <button class="btn btn-primary btn-block" type="submit" id="login-submit">Přihlásit se</button>
+    </form>
+    <div class="demo-hint" id="demo-hint" hidden>Ukázka: zadejte libovolné jméno a PIN <b>1234</b>.</div>
+    <p class="gate-foot"><a href="index.html">← Zpět na web</a></p>
+  </div>
+</section>
+
+<!-- Aplikace -->
+<main class="dash" id="app" hidden>
+  <div class="container">
+    <div class="dash-head">
+      <div>
+        <span class="eyebrow" id="greet-eyebrow">Dobrý den</span>
+        <h1 id="greet">Zápis úklidu</h1>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Sekce">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="tab-new" id="t-new" data-tab="new"></button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-records" id="t-records" data-tab="records"></button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-clients" id="t-clients" data-tab="clients"></button>
+    </div>
+
+    <!-- Nový záznam -->
+    <section id="tab-new" role="tabpanel" aria-labelledby="t-new">
+      <form id="cleaning-form" class="staff-grid" novalidate>
+        <div class="card">
+          <div class="step-block">
+            <div class="step-title"><i>1</i><h2>Kde se uklízelo</h2></div>
+            <div class="row-2">
+              <label class="field"><span>Klient</span><select name="client_id" id="f-client" required></select></label>
+              <label class="field"><span>Místo úklidu</span><select name="place_id" id="f-place" required></select></label>
+            </div>
+          </div>
+
+          <div class="step-block">
+            <div class="step-title"><i>2</i><h2>Kdy</h2></div>
+            <div class="row-3">
+              <label class="field"><span>Datum</span><input type="date" name="date" id="f-date" required></label>
+              <div class="field"><label class="label" for="f-start">Začátek</label><div class="time-wrap"><input type="time" name="start_time" id="f-start" required><button type="button" class="now-btn" data-now="f-start">Teď</button></div></div>
+              <div class="field"><label class="label" for="f-end">Konec</label><div class="time-wrap"><input type="time" name="end_time" id="f-end" required><button type="button" class="now-btn" data-now="f-end">Teď</button></div></div>
+            </div>
+          </div>
+
+          <div class="step-block">
+            <div class="step-title"><i>3</i><h2>Co se udělalo</h2></div>
+            <div class="toggle-chips" id="tasks" role="group" aria-label="Provedené práce"></div>
+            <div class="add-chip">
+              <input class="input" id="custom-task" placeholder="Jiná práce…" aria-label="Přidat jinou práci">
+              <button class="btn btn-sm" type="button" id="add-task">Přidat</button>
+            </div>
+          </div>
+
+          <div class="step-block">
+            <div class="step-title"><i>4</i><h2>Fotky</h2></div>
+            <div class="kind-switch" role="group" aria-label="Typ fotek">
+              <button type="button" data-kind="pred" aria-pressed="true">Před úklidem</button>
+              <button type="button" data-kind="po" aria-pressed="false">Po úklidu</button>
+            </div>
+            <div class="upload-btns">
+              <label class="upload-btn" id="drop-camera">
+                <span id="ic-camera"></span>
+                Vyfotit
+                <small>otevře fotoaparát</small>
+                <input type="file" accept="image/*" capture="environment" multiple id="in-camera">
+              </label>
+              <label class="upload-btn" id="drop-gallery">
+                <span id="ic-gallery"></span>
+                Vybrat z galerie
+                <small>nebo sem přetáhněte</small>
+                <input type="file" accept="image/*" multiple id="in-gallery">
+              </label>
+            </div>
+            <div class="previews" id="previews"></div>
+            <p class="form-note" style="margin-top:10px">Tip: typ fotky („Před“ / „Po“) změníte klepnutím na štítek. Fotky se před odesláním automaticky zmenší.</p>
+          </div>
+
+          <div class="step-block">
+            <div class="step-title"><i>5</i><h2>Poznámka pro klienta</h2></div>
+            <label class="field"><span class="visually-hidden">Poznámka</span><textarea name="note" id="f-note" placeholder="Nepovinné – např. „Došel prostředek na podlahy.“"></textarea></label>
+          </div>
+        </div>
+
+        <aside class="card summary">
+          <h3>Shrnutí</h3>
+          <dl id="summary"></dl>
+          <div class="alert alert-error" id="form-error" role="alert" hidden style="margin-bottom:12px"></div>
+          <button class="btn btn-accent btn-block" type="submit" id="save">Uložit úklid</button>
+          <div class="progress" id="progress"><i></i></div>
+        </aside>
+      </form>
+
+      <div class="card success-panel" id="success" hidden>
+        <div class="ok-ic" id="ok-ic"></div>
+        <h2>Uloženo</h2>
+        <p id="success-text"></p>
+        <div class="btns">
+          <button class="btn btn-primary" type="button" id="another">Zapsat další úklid</button>
+          <button class="btn" type="button" id="show-records">Zobrazit záznamy</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Záznamy -->
+    <section id="tab-records" role="tabpanel" aria-labelledby="t-records" hidden>
+      <div id="records"></div>
+    </section>
+
+    <!-- Klienti -->
+    <section id="tab-clients" role="tabpanel" aria-labelledby="t-clients" hidden>
+      <div class="staff-grid">
+        <div id="clients"></div>
+        <form class="card summary" id="client-form" novalidate>
+          <h3>Nový klient</h3>
+          <div style="display:grid;gap:14px">
+            <label class="field"><span>Jméno / firma</span><input name="name" id="c-name" placeholder="např. Novákovi, Kavárna U Mostu"></label>
+            <div>
+              <span class="label">Místa úklidu</span>
+              <div class="place-rows" id="place-rows" style="margin-top:8px"></div>
+              <button class="btn btn-sm btn-ghost" type="button" id="add-place-row" style="margin-top:8px;padding-left:4px"></button>
+            </div>
+          </div>
+          <div class="alert alert-error" id="client-error" role="alert" hidden style="margin-top:14px"></div>
+          <button class="btn btn-primary btn-block" type="submit" style="margin-top:16px">Vytvořit klienta a kód</button>
+          <p class="form-note" style="margin-top:10px">Klient dostane přístupový kód, pod kterým uvidí své úklidy.</p>
+        </form>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Prohlížeč fotek -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Fotografie z úklidu">
+  <div class="lb-top">
+    <span id="lb-caption"></span>
+    <button class="lb-btn" type="button" id="lb-close" aria-label="Zavřít"></button>
+  </div>
+  <div class="lb-stage">
+    <button class="lb-btn lb-prev" type="button" id="lb-prev" aria-label="Předchozí fotka"></button>
+    <div class="lb-imgwrap" id="lb-content"></div>
+    <button class="lb-btn lb-next" type="button" id="lb-next" aria-label="Další fotka"></button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+<script type="module" src="assets/js/zamestnanci.js"></script>
+</body>
+</html>
