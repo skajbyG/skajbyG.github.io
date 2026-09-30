@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HYPER — skajbyG</title>
+<meta name="description" content="Realita je jen návrh. Interaktivní 3D zážitek.">
+<meta name="theme-color" content="#050008">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;500;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050008;
+  --fg:#f3efff;
+  --dim:rgba(243,239,255,.55);
+  --line:rgba(243,239,255,.14);
+  --acid:#c6ff00;
+  --hot:#ff2bd6;
+  --ice:#00f0ff;
+  --skew:0deg;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --display:'Unbounded',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);color:var(--fg);scrollbar-width:none}
+html::-webkit-scrollbar{display:none}
+body{font-family:var(--display);background:var(--bg);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body.loading{overflow:hidden}
+::selection{background:var(--acid);color:#000}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+/* ---------- WebGL ---------- */
+#gl{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block}
+.no-webgl #gl{display:none}
+.no-webgl body{background:radial-gradient(circle at 50% 40%,#3a0a5e,#050008 60%)}
+
+/* ---------- loader ---------- */
+#loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;transition:opacity .9s}
+#loader.done{opacity:0;pointer-events:none}
+#loader .orb{width:46px;height:46px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--fg);animation:rot 1s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+
+nav{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;justify-content:space-between;align-items:center;padding:20px 24px;mix-blend-mode:difference}
+.logo{font-weight:900;font-size:18px;letter-spacing:-.04em}
+.logo span{display:inline-block;transition:transform .5s cubic-bezier(.2,1.6,.4,1)}
+.logo:hover span{transform:rotate(360deg)}
+nav ul{list-style:none;display:flex;gap:28px;font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.14em}
+nav ul a{position:relative}
+nav ul a::after{content:"";position:absolute;left:0;bottom:-4px;height:1px;width:100%;background:currentColor;transform:scaleX(0);transform-origin:right;transition:transform .4s}
+nav ul a:hover::after{transform:scaleX(1);transform-origin:left}
+#sound{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+#sound .eq{display:flex;gap:2px;align-items:flex-end;height:12px}
+#sound .eq i{width:2px;height:3px;background:currentColor;transition:height .2s}
+#sound.on .eq i{animation:eq .8s ease-in-out infinite alternate}
+#sound.on .eq i:nth-child(2){animation-delay:.2s}
+#sound.on .eq i:nth-child(3){animation-delay:.4s}
+#sound.on .eq i:nth-child(4){animation-delay:.1s}
+@keyframes eq{from{height:2px}to{height:12px}}
+@media (max-width:720px){nav ul{display:none}}
+
+/* ---------- content ---------- */
+main{position:relative;z-index:10}
+section{position:relative;min-height:100vh;padding:0 6vw}
+
+/* hero */
+#hero{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;pointer-events:none}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--acid);margin-bottom:3vh}
+.mega{font-size:clamp(64px,17vw,300px);font-weight:900;line-height:.82;letter-spacing:-.07em;mix-blend-mode:difference;white-space:nowrap}
+.mega .ch{display:inline-block;transform:translateY(110%) rotate(8deg);opacity:0;transition:transform 1.2s cubic-bezier(.16,1,.3,1),opacity 1.2s}
+.ready .mega .ch{transform:none;opacity:1}
+.sub{margin-top:4vh;max-width:520px;font-family:var(--mono);font-size:14px;line-height:1.7;color:var(--dim)}
+.scroll-hint{position:absolute;bottom:9vh;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:12px}
+.scroll-hint i{width:1px;height:60px;background:linear-gradient(var(--fg),transparent);animation:drip 1.8s cubic-bezier(.7,0,.3,1) infinite;transform-origin:top}
+@keyframes drip{0%{transform:scaleY(0)}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* manifest */
+#manifest{display:flex;flex-direction:column;justify-content:center;padding-top:10vh;padding-bottom:10vh}
+.manifest-text{font-size:clamp(28px,4.6vw,76px);font-weight:500;line-height:1.08;letter-spacing:-.035em;max-width:14em}
+.manifest-text .w{display:inline-block;opacity:.12;transition:opacity .5s,color .5s}
+.manifest-text .w.on{opacity:1}
+.manifest-text .w.hl.on{color:var(--acid)}
+.marquee{margin:14vh -6vw 0;overflow:hidden;transform:skewY(var(--skew));border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:2vh 0;background:rgba(5,0,8,.35);backdrop-filter:blur(6px)}
+.marquee .track{display:flex;width:max-content;animation:marq 22s linear infinite}
+.marquee span{font-size:clamp(50px,9vw,150px);font-weight:900;letter-spacing:-.05em;padding-right:.4em;white-space:nowrap;-webkit-text-stroke:1.5px var(--fg);color:transparent}
+.marquee span:nth-child(odd){color:var(--fg);-webkit-text-stroke:0}
+.marquee span em{font-style:normal;color:var(--hot)}
+@keyframes marq{to{transform:translateX(-50%)}}
+
+/* cards */
+#lab{padding-top:16vh;padding-bottom:16vh}
+.label{font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:14px;margin-bottom:5vh}
+.label::before{content:"";width:40px;height:1px;background:currentColor}
+h2{font-size:clamp(40px,7vw,120px);font-weight:900;letter-spacing:-.06em;line-height:.9;margin-bottom:8vh}
+h2 .out{-webkit-text-stroke:1.5px var(--fg);color:transparent}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;perspective:1200px}
+.card{position:relative;min-height:380px;padding:30px;border-radius:26px;border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.01));backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);transform-style:preserve-3d;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .15s ease-out,border-color .4s;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.card:hover{border-color:rgba(255,255,255,.4)}
+.card::before{content:"";position:absolute;inset:0;background:radial-gradient(500px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.18),transparent 40%);opacity:0;transition:opacity .4s;pointer-events:none}
+.card:hover::before{opacity:1}
+.card .num{font-family:var(--mono);font-size:12px;color:var(--dim);transform:translateZ(30px)}
+.card .icon{width:84px;height:84px;transform:translateZ(80px)}
+.card h3{font-size:30px;font-weight:800;letter-spacing:-.04em;margin-bottom:12px;transform:translateZ(60px)}
+.card p{font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--dim);transform:translateZ(40px)}
+.card .tag{position:absolute;top:28px;right:28px;font-family:var(--mono);font-size:10px;padding:5px 10px;border-radius:99px;border:1px solid var(--line);letter-spacing:.14em;transform:translateZ(50px)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 30px;margin-top:14vh;border-top:1px solid var(--line)}
+.stat{padding:4vh 0;border-bottom:1px solid var(--line)}
+.stat b{display:block;white-space:nowrap;font-size:clamp(40px,4.4vw,72px);font-weight:900;letter-spacing:-.06em;line-height:1}
+.stat span{font-family:var(--mono);font-size:12px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
+
+/* warp */
+#warp{min-height:320vh}
+.warp-sticky{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;pointer-events:none}
+.warp-title{font-size:clamp(46px,11vw,200px);font-weight:900;letter-spacing:-.07em;line-height:.85;mix-blend-mode:difference}
+.warp-speed{margin-top:4vh;font-family:var(--mono);font-size:14px;letter-spacing:.2em;color:var(--acid)}
+.warp-speed b{font-size:clamp(30px,4vw,60px);display:block;color:var(--fg);letter-spacing:-.02em;font-family:var(--display);font-weight:800}
+
+/* finale */
+#finale{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:120vh}
+#finale h2{margin-bottom:5vh}
+.btn{position:relative;display:inline-flex;align-items:center;gap:14px;padding:26px 48px;border-radius:999px;background:var(--acid);color:#000;font-weight:800;font-size:18px;letter-spacing:-.02em;overflow:hidden;transition:transform .3s cubic-bezier(.2,1.4,.4,1)}
+.btn::before{content:"";position:absolute;inset:0;background:var(--hot);transform:translateY(101%);border-radius:50% 50% 0 0;transition:transform .6s cubic-bezier(.7,0,.2,1),border-radius .6s}
+.btn:hover::before{transform:none;border-radius:0}
+.btn span{position:relative}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn.ghost::before{background:var(--fg)}
+.btn.ghost:hover{color:#000}
+.cta{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.boom-count{margin-top:5vh;font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.boom-count b{color:var(--acid)}
+footer{position:relative;z-index:10;padding:40px 24px 70px;display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-top:1px solid var(--line)}
+
+.reveal{opacity:0;transform:translateY(60px);transition:opacity 1s,transform 1.2s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* flash on click */
+#flash{position:fixed;inset:0;z-index:5;pointer-events:none;background:radial-gradient(circle at var(--fx,50%) var(--fy,50%),rgba(255,255,255,.5),transparent 35%);opacity:0}
+#flash.go{animation:flash .7s ease-out}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+
+@media (prefers-reduced-motion:reduce){
+  .marquee .track,.scroll-hint i{animation:none}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body class="loading">
+
+<div id="loader"><div class="orb"></div></div>
+
+<canvas id="gl"></canvas>
+<div id="flash"></div>
+
+<nav>
+  <a href="#hero" class="logo" data-hover>SKAJ<span>/</span>BYG</a>
+  <ul>
+    <li><a href="#manifest" data-scramble data-hover>Manifest</a></li>
+    <li><a href="#lab" data-scramble data-hover>Laboratoř</a></li>
+    <li><a href="#warp" data-scramble data-hover>Warp</a></li>
+    <li><a href="#finale" data-scramble data-hover>Big Bang</a></li>
+  </ul>
+  <button id="sound" data-hover aria-pressed="false"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="soundLabel">Zvuk vyp</span></button>
+</nav>
+
+
+<main>
+  <section id="hero" data-blob-x="0" data-hue="0">
+    <div class="kicker" data-scramble-auto>// vítej v nultém rozměru</div>
+    <h1 class="mega" id="megaTitle">HYPER</h1>
+    <p class="sub">Tohle není web. Je to živý organismus z 250 000 polygonů, který dýchá, reaguje na tvou myš a exploduje, když klikneš.</p>
+    <div class="scroll-hint">Scrolluj<i></i></div>
+  </section>
+
+  <section id="manifest" data-blob-x="2.2" data-hue="0.25">
+    <div class="label">01 — Manifest</div>
+    <p class="manifest-text" id="manifestText">Realita je jen návrh. My ji *přepisujeme* každý snímek, šedesátkrát za vteřinu. Pixely tu nejsou statické — *tančí*, *mutují* a pamatují si, kudy jsi prošel.</p>
+    <div class="marquee"><div class="track">
+      <span>WebGL</span><span><em>✺</em></span><span>Shadery</span><span><em>✺</em></span><span>Chaos</span><span><em>✺</em></span><span>60 FPS</span><span><em>✺</em></span>
+      <span>WebGL</span><span><em>✺</em></span><span>Shadery</span><span><em>✺</em></span><span>Chaos</span><span><em>✺</em></span><span>60 FPS</span><span><em>✺</em></span>
+    </div></div>
+  </section>
+
+  <section id="lab" data-blob-x="3.4" data-blob-s="0.55" data-hue="0.55">
+    <div class="label reveal">02 — Laboratoř</div>
+    <h2 class="reveal">Co tady <span class="out">bublá</span></h2>
+    <div class="grid">
+      <article class="card reveal" data-tilt data-hover>
+        <span class="tag">GLSL</span>
+        <div class="num">[ 01 ]</div>
+        <svg class="icon" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="50" cy="50" r="30"/><ellipse cx="50" cy="50" rx="46" ry="14"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="6s" repeatCount="indefinite"/></ellipse><ellipse cx="50" cy="50" rx="14" ry="46"><animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur="9s" repeatCount="indefinite"/></ellipse></svg>
+        <div><h3>Tekutý kov</h3><p>Simplexový šum deformuje sféru v reálném čase. Duhový fresnel, který by záviděl i brouk.</p></div>
+      </article>
+      <article class="card reveal" data-tilt data-hover>
+        <span class="tag">GPU</span>
+        <div class="num">[ 02 ]</div>
+        <svg class="icon" viewBox="0 0 100 100" fill="currentColor"><g><circle cx="20" cy="30" r="2"/><circle cx="50" cy="15" r="3"/><circle cx="78" cy="35" r="2"/><circle cx="35" cy="60" r="4"/><circle cx="70" cy="72" r="2.5"/><circle cx="18" cy="82" r="2"/><circle cx="55" cy="45" r="1.5"/><circle cx="88" cy="88" r="3"/><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="20s" repeatCount="indefinite"/></g></svg>
+        <div><h3>Galaxie částic</h3><p>Desítky tisíc hvězd, každá s vlastní fází. Klikni a pošli je rázovou vlnou do háje.</p></div>
+      </article>
+      <article class="card reveal" data-tilt data-hover>
+        <span class="tag">POST-FX</span>
+        <div class="num">[ 03 ]</div>
+        <svg class="icon" viewBox="0 0 100 100" fill="none" stroke-width="2"><circle cx="44" cy="50" r="28" stroke="#ff2bd6"/><circle cx="50" cy="50" r="28" stroke="#c6ff00"/><circle cx="56" cy="50" r="28" stroke="#00f0ff"/></svg>
+        <div><h3>Bloom &amp; aberace</h3><p>Světlo krvácí do okolí, barvy se trhají podle rychlosti scrollu. Film grain zdarma.</p></div>
+      </article>
+    </div>
+    <div class="stats">
+      <div class="stat reveal"><b data-count="250000">0</b><span>Polygonů v kapce</span></div>
+      <div class="stat reveal"><b data-count="40000">0</b><span>Hvězd v galaxii</span></div>
+      <div class="stat reveal"><b data-count="0">0</b><span>Použitých frameworků</span></div>
+      <div class="stat reveal"><b data-count="1" data-suffix=" soubor">0</b><span>Celý web</span></div>
+    </div>
+  </section>
+
+  <section id="warp" data-blob-x="0" data-hue="0.8" data-warp>
+    <div class="warp-sticky">
+      <div class="label" style="justify-content:center">03 — Warp</div>
+      <div class="warp-title">SKOK DO<br>HYPERPROSTORU</div>
+      <div class="warp-speed"><b id="warpSpeed">0.00c</b>rychlost světla</div>
+    </div>
+  </section>
+
+  <section id="finale" data-blob-x="0" data-hue="0.1">
+    <div class="label reveal" style="justify-content:center">04 — Big Bang</div>
+    <h2 class="reveal">Klikni <span class="out">kamkoliv.</span><br>Rozbij vesmír.</h2>
+    <div class="cta reveal">
+      <button class="btn" id="bigBang" data-hover data-magnet><span>Odpálit ✺</span></button>
+      <a class="btn ghost" href="#hero" data-hover data-magnet><span>Znovu od nuly ↑</span></a>
+    </div>
+    <div class="boom-count">Zničených vesmírů: <b id="booms">0</b></div>
+  </section>
+</main>
+
+<footer>
+  <span>© 2026 skajbyG</span>
+  <span>Ručně psané WebGL · žádný framework</span>
+</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const mobile = matchMedia('(pointer: coarse)').matches || innerWidth < 720;
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+/* ================= LOADER ================= */
+let loaded = false;
+function finishLoad() {
+  if (loaded) return;
+  loaded = true;
+  $('#loader').classList.add('done');
+  document.body.classList.remove('loading');
+  document.body.classList.add('ready');
+  scramble($('[data-scramble-auto]'));
+}
+
+/* ================= TEXT ================= */
+const mega = $('#megaTitle');
+mega.innerHTML = [...mega.textContent].map((c, i) => `<span class="ch" style="transition-delay:${.35 + i * .07}s">${c}</span>`).join('');
+
+const glyphs = '!<>-_\\/[]{}—=+*^?#░▒▓█ΣΞΨΩ01';
+function scramble(el) {
+  if (!el || reduced) return;
+  const final = el.dataset.text || (el.dataset.text = el.textContent);
+  let frame = 0;
+  const q = [...final].map((c, i) => ({ c, start: Math.floor(Math.random() * 12), end: 12 + Math.floor(Math.random() * 18) + i }));
+  cancelAnimationFrame(el._raf);
+  const tick = () => {
+    let out = '', done = 0;
+    for (const o of q) {
+      if (frame >= o.end) { out += o.c; done++; }
+      else if (frame >= o.start && o.c !== ' ') out += glyphs[Math.floor(Math.random() * glyphs.length)];
+      else out += o.c;
+    }
+    el.textContent = out;
+    frame++;
+    if (done < q.length) el._raf = requestAnimationFrame(tick);
+  };
+  tick();
+}
+$$('[data-scramble]').forEach(el => el.addEventListener('mouseenter', () => scramble(el)));
+
+// manifest word-by-word reveal
+const mt = $('#manifestText');
+mt.innerHTML = mt.textContent.split(' ').map(w => {
+  const hl = w.startsWith('*');
+  return `<span class="w${hl ? ' hl' : ''}">${w.replace(/\*/g, '')}</span>`;
+}).join(' ');
+const words = $$('#manifestText .w');
+
+// reveal + counters
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return;
+  e.target.classList.add('in');
+  const n = e.target.querySelector('[data-count]');
+  if (n && !n._done) {
+    n._done = true;
+    const to = +n.dataset.count, suf = n.dataset.suffix || '', t0 = performance.now();
+    const step = now => {
+      const k = clamp((now - t0) / 1800, 0, 1), eased = 1 - Math.pow(1 - k, 4);
+      n.textContent = Math.round(to * eased).toLocaleString('cs-CZ') + suf;
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+}), { threshold: .2 });
+$$('.reveal').forEach(el => io.observe(el));
+
+/* ================= CURSOR / TILT / MAGNET ================= */
+const mouse = { x: innerWidth / 2, y: innerHeight / 2, nx: 0, ny: 0 };
+addEventListener('pointermove', e => {
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  mouse.nx = (e.clientX / innerWidth) * 2 - 1;
+  mouse.ny = -(e.clientY / innerHeight) * 2 + 1;
+});
+$$('[data-tilt]').forEach(card => {
+  card.addEventListener('pointermove', e => {
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+    card.style.setProperty('--ry', ((px - .5) * 22) + 'deg');
+    card.style.setProperty('--rx', ((.5 - py) * 22) + 'deg');
+    card.style.setProperty('--mx', px * 100 + '%');
+    card.style.setProperty('--my', py * 100 + '%');
+  });
+  card.addEventListener('pointerleave', () => {
+    card.style.setProperty('--rx', '0deg'); card.style.setProperty('--ry', '0deg');
+  });
+});
+$$('[data-magnet]').forEach(b => {
+  b.addEventListener('pointermove', e => {
+    const r = b.getBoundingClientRect();
+    b.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * .35}px,${(e.clientY - r.top - r.height / 2) * .35}px)`;
+  });
+  b.addEventListener('pointerleave', () => b.style.transform = '');
+});
+
+/* ================= SOUND (WebAudio drone) ================= */
+let audio = null;
+function initAudio() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const master = ctx.createGain(); master.gain.value = 0;
+  const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 400; filter.Q.value = 8;
+  const delay = ctx.createDelay(); delay.delayTime.value = .33;
+  const fb = ctx.createGain(); fb.gain.value = .45;
+  delay.connect(fb); fb.connect(delay);
+  filter.connect(master); filter.connect(delay); delay.connect(master);
+  master.connect(ctx.destination);
+  const oscs = [55, 55.4, 82.4, 110.2].map((f, i) => {
+    const o = ctx.createOscillator(); o.type = i % 2 ? 'sawtooth' : 'triangle'; o.frequency.value = f;
+    const g = ctx.createGain(); g.gain.value = i < 2 ? .3 : .12;
+    o.connect(g); g.connect(filter); o.start(); return o;
+  });
+  const lfo = ctx.createOscillator(); lfo.frequency.value = .08;
+  const lg = ctx.createGain(); lg.gain.value = 200; lfo.connect(lg); lg.connect(filter.frequency); lfo.start();
+  return { ctx, master, filter, oscs, on: false };
+}
+function boomSound() {
+  if (!audio || !audio.on) return;
+  const { ctx, master } = audio, t = ctx.currentTime;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(30, t + .8);
+  g.gain.setValueAtTime(1.2, t); g.gain.exponentialRampToValueAtTime(.001, t + 1.2);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + 1.3);
+}
+$('#sound').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!audio) audio = initAudio();
+  audio.on = !audio.on;
+  audio.ctx.resume();
+  audio.master.gain.setTargetAtTime(audio.on ? .18 : 0, audio.ctx.currentTime, .4);
+  $('#sound').classList.toggle('on', audio.on);
+  $('#sound').setAttribute('aria-pressed', audio.on);
+  $('#soundLabel').textContent = audio.on ? 'Zvuk zap' : 'Zvuk vyp';
+});
+
+/* ================= SCROLL STATE ================= */
+const sections = $$('main section');
+let scrollP = 0, smoothP = 0, lastY = scrollY, velocity = 0;
+let targetBlobX = 0, targetBlobS = 1, targetHue = 0, warpP = 0;
+const warpEl = $('#warp');
+function readScroll() {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  scrollP = max > 0 ? scrollY / max : 0;
+  const mid = innerHeight * .5;
+  for (const s of sections) {
+    const r = s.getBoundingClientRect();
+    if (r.top <= mid && r.bottom >= mid) {
+      targetBlobX = mobile ? 0 : +s.dataset.blobX;
+      targetHue = +s.dataset.hue;
+      targetBlobS = +(s.dataset.blobS || 1);
+    }
+  }
+  const wr = warpEl.getBoundingClientRect();
+  warpP = clamp(-wr.top / (wr.height - innerHeight), 0, 1);
+  // manifest words
+  const mr = mt.getBoundingClientRect();
+  const k = clamp((innerHeight * .85 - mr.top) / (mr.height + innerHeight * .3), 0, 1);
+  const lit = Math.floor(k * words.length * 1.15);
+  words.forEach((w, i) => w.classList.toggle('on', i < lit));
+}
+addEventListener('scroll', readScroll, { passive: true });
+readScroll();
+
+/* ================= BIG BANG ================= */
+let pulse = 0, booms = 0;
+function bang(x = innerWidth / 2, y = innerHeight / 2) {
+  pulse = 1;
+  booms++;
+  $('#booms').textContent = booms;
+  const f = $('#flash');
+  f.style.setProperty('--fx', x + 'px'); f.style.setProperty('--fy', y + 'px');
+  f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+  boomSound();
+  if (navigator.vibrate) navigator.vibrate(40);
+}
+addEventListener('click', e => {
+  if (e.target.closest('a, button:not(#bigBang), nav')) return;
+  bang(e.clientX, e.clientY);
+});
+
+/* ================= WEBGL ================= */
+const NOISE = /* glsl */`
+vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
+float snoise(vec3 v){
+  const vec2 C=vec2(1.0/6.0,1.0/3.0);const vec4 D=vec4(0.0,0.5,1.0,2.0);
+  vec3 i=floor(v+dot(v,C.yyy));vec3 x0=v-i+dot(i,C.xxx);
+  vec3 g=step(x0.yzx,x0.xyz);vec3 l=1.0-g;vec3 i1=min(g.xyz,l.zxy);vec3 i2=max(g.xyz,l.zxy);
+  vec3 x1=x0-i1+C.xxx;vec3 x2=x0-i2+C.yyy;vec3 x3=x0-D.yyy;
+  i=mod289(i);
+  vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
+  float n_=0.142857142857;vec3 ns=n_*D.wyz-D.xzx;
+  vec4 j=p-49.0*floor(p*ns.z*ns.z);vec4 x_=floor(j*ns.z);vec4 y_=floor(j-7.0*x_);
+  vec4 x=x_*ns.x+ns.yyyy;vec4 y=y_*ns.x+ns.yyyy;vec4 h=1.0-abs(x)-abs(y);
+  vec4 b0=vec4(x.xy,y.xy);vec4 b1=vec4(x.zw,y.zw);
+  vec4 s0=floor(b0)*2.0+1.0;vec4 s1=floor(b1)*2.0+1.0;vec4 sh=-step(h,vec4(0.0));
+  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+  vec3 p0=vec3(a0.xy,h.x);vec3 p1=vec3(a0.zw,h.y);vec3 p2=vec3(a1.xy,h.z);vec3 p3=vec3(a1.zw,h.w);
+  vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+  p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
+  vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0);m=m*m;
+  return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+}`;
+
+function startGL() {
+  const canvas = $('#gl');
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  } catch (e) { throw e; }
+  const DPR = Math.min(devicePixelRatio, mobile ? 1.5 : 2);
+  renderer.setPixelRatio(DPR);
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setClearColor(0x050008, 1);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x050008, 0.018);
+  const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
+  camera.position.set(0, 0, 6);
+
+  /* ---- BLOB ---- */
+  const blobU = {
+    uTime: { value: 0 }, uPulse: { value: 0 }, uMouse: { value: new THREE.Vector2() },
+    uHue: { value: 0 }, uWarp: { value: 0 }, uVel: { value: 0 }
+  };
+  const blobMat = new THREE.ShaderMaterial({
+    uniforms: blobU,
+    vertexShader: NOISE + /* glsl */`
+      uniform float uTime,uPulse,uWarp,uVel; uniform vec2 uMouse;
+      varying vec3 vView; varying float vD; varying vec3 vObj;
+      void main(){
+        vec3 p=position; vec3 n=normalize(p);
+        float t=uTime*.35;
+        float d=snoise(n*1.3+vec3(t,t*.7,-t))*.38;
+        d+=snoise(n*3.2-vec3(0.,t*1.6,0.))*.12;
+        d+=snoise(n*8.0+t*2.)*.035*(1.+uVel*6.);
+        float sp=max(snoise(n*2.2+vec3(uTime*.9)),0.);
+        d+=pow(sp,2.)*uPulse*1.9;
+        d+=dot(n,vec3(uMouse*1.2,.0))*.22;
+        d+=sin(n.y*20.+uTime*4.)*.05*uWarp;
+        vec3 np=n*(1.35+d);
+        np.xy*=1.+uWarp*.25*sin(np.z*3.+uTime*3.);
+        vD=d; vObj=np;
+        vec4 mv=modelViewMatrix*vec4(np,1.);
+        vView=mv.xyz;
+        gl_Position=projectionMatrix*mv;
+      }`,
+    fragmentShader: /* glsl */`
+      uniform float uTime,uHue,uPulse;
+      varying vec3 vView; varying float vD; varying vec3 vObj;
+      vec3 pal(float t){return .5+.5*cos(6.28318*(t+vec3(0.,.33,.67)));}
+      void main(){
+        vec3 N=normalize(cross(dFdx(vView),dFdy(vView)));
+        vec3 V=normalize(-vView);
+        float ndv=max(dot(N,V),0.);
+        float fres=pow(1.-ndv,2.2);
+        vec3 irid=pal(fres*.9+vD*1.2+uHue+uTime*.03+vObj.y*.08);
+        vec3 base=vec3(.015,.0,.04);
+        vec3 col=mix(base,irid,.18+fres*.95);
+        vec3 L1=normalize(vec3(.6,.8,.5)); vec3 L2=normalize(vec3(-.8,-.3,.4));
+        col+=pow(max(dot(reflect(-L1,N),V),0.),48.)*1.2;
+        col+=pow(max(dot(reflect(-L2,N),V),0.),16.)*vec3(.9,.1,.8)*.5;
+        col+=irid*fres*.7;
+        float bands=smoothstep(.48,.5,fract(vD*7.-uTime*.3))*smoothstep(.56,.5,fract(vD*7.-uTime*.3));
+        col+=bands*irid*.35;
+        col+=uPulse*irid*.8;
+        col=min(col*.85,vec3(1.1));
+        gl_FragColor=vec4(col,1.);
+      }`
+  });
+  const blob = new THREE.Mesh(new THREE.IcosahedronGeometry(1, mobile ? 48 : 110), blobMat);
+  scene.add(blob);
+
+  // orbit wire rings around blob
+  const ringGroup = new THREE.Group();
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xc6ff00, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false });
+  const rings = [2.4, 2.9, 3.5].map((r, i) => {
+    const m = new THREE.Mesh(new THREE.TorusGeometry(r, .006 + i * .002, 6, 220), ringMat.clone());
+    m.material.color.setHSL([.22, .85, .52][i], 1, .6);
+    m.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+    ringGroup.add(m); return m;
+  });
+  // satellites
+  const satGeo = new THREE.OctahedronGeometry(.08, 0);
+  const sats = rings.map((r, i) => {
+    const s = new THREE.Mesh(satGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    r.add(s); return s;
+  });
+  scene.add(ringGroup);
+
+  /* ---- STARFIELD / GALAXY ---- */
+  const STARS = mobile ? 14000 : 40000;
+  const sPos = new Float32Array(STARS * 3), sRnd = new Float32Array(STARS * 4);
+  for (let i = 0; i < STARS; i++) {
+    const arm = i % 4, t = Math.random();
+    const r = 6 + Math.pow(t, .6) * 40;
+    const a = arm * Math.PI / 2 + r * .18 + (Math.random() - .5) * .6;
+    sPos[i * 3] = Math.cos(a) * r + (Math.random() - .5) * 3;
+    sPos[i * 3 + 1] = Math.sin(a) * r + (Math.random() - .5) * 3;
+    sPos[i * 3 + 2] = 10 - Math.random() * 150;
+    sRnd[i * 4] = Math.random(); sRnd[i * 4 + 1] = Math.random();
+    sRnd[i * 4 + 2] = Math.random(); sRnd[i * 4 + 3] = Math.random();
+  }
+  const sGeo = new THREE.BufferGeometry();
+  sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+  sGeo.setAttribute('aRnd', new THREE.BufferAttribute(sRnd, 4));
+  const starU = { uTime: { value: 0 }, uPulse: { value: 0 }, uHue: { value: 0 }, uWarp: { value: 0 }, uDPR: { value: DPR } };
+  const stars = new THREE.Points(sGeo, new THREE.ShaderMaterial({
+    uniforms: starU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: /* glsl */`
+      uniform float uTime,uPulse,uWarp,uDPR; attribute vec4 aRnd; varying vec3 vC; varying float vA;
+      vec3 pal(float t){return .5+.5*cos(6.28318*(t+vec3(0.,.33,.67)));}
+      void main(){
+        vec3 p=position;
+        vec2 dir=normalize(p.xy+.001);
+        p.xy+=dir*uPulse*(4.+aRnd.x*14.);
+        p.z+=sin(uTime*.5+aRnd.y*6.28)*.6;
+        vec4 mv=modelViewMatrix*vec4(p,1.);
+        float tw=.6+.4*sin(uTime*(1.+aRnd.z*3.)+aRnd.w*20.);
+        gl_PointSize=(1.+aRnd.x*2.6)*tw*uDPR*(40./-mv.z)*(1.+uWarp*1.5);
+        gl_Position=projectionMatrix*mv;
+        vC=mix(vec3(1.),pal(aRnd.y*.4+.5),.55);
+        vA=clamp(1.-(-mv.z)/90.,0.,1.);
+      }`,
+    fragmentShader: /* glsl */`
+      varying vec3 vC; varying float vA;
+      void main(){ vec2 c=gl_PointCoord-.5; float d=length(c); float a=smoothstep(.5,0.,d); a*=a; gl_FragColor=vec4(vC*a*vA*1.4,1.); }`
+  }));
+  scene.add(stars);
+
+  /* ---- WARP TUNNEL (streaks) ---- */
+  const STREAKS = mobile ? 900 : 2400;
+  const tGeo = new THREE.BufferGeometry();
+  const tPos = new Float32Array(STREAKS * 6), tCol = new Float32Array(STREAKS * 6);
+  const streakData = [];
+  for (let i = 0; i < STREAKS; i++) {
+    const a = Math.random() * Math.PI * 2, r = 2 + Math.random() * 7;
+    streakData.push({ a, r, z: -Math.random() * 120, s: .5 + Math.random() });
+    const c = new THREE.Color().setHSL(.5 + Math.random() * .4, 1, .6);
+    tCol.set([c.r, c.g, c.b, 0, 0, 0], i * 6);
+  }
+  tGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3));
+  tGeo.setAttribute('color', new THREE.BufferAttribute(tCol, 3));
+  const tunnelMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  const tunnel = new THREE.LineSegments(tGeo, tunnelMat);
+  tunnel.frustumCulled = false;
+  scene.add(tunnel);
+
+  /* ---- floating wire shapes ---- */
+  const floaters = [];
+  const fGeos = [new THREE.TorusKnotGeometry(.5, .15, 90, 10), new THREE.IcosahedronGeometry(.6, 0), new THREE.OctahedronGeometry(.6, 0), new THREE.TorusGeometry(.5, .18, 10, 30)];
+  for (let i = 0; i < 18; i++) {
+    const m = new THREE.Mesh(fGeos[i % 4], new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: .35, color: new THREE.Color().setHSL(Math.random(), 1, .6) }));
+    const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 6;
+    m.position.set(Math.cos(a) * r, Math.sin(a) * r * .6, -Math.random() * 120 + 5);
+    m.userData = { rs: new THREE.Vector3(Math.random(), Math.random(), Math.random()).multiplyScalar(.01), f: Math.random() * 10 };
+    m.scale.setScalar(.5 + Math.random());
+    scene.add(m); floaters.push(m);
+  }
+
+  /* ---- POST ---- */
+  const composer = new EffectComposer(renderer);
+  composer.setPixelRatio(DPR);
+  composer.setSize(innerWidth, innerHeight);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .9, .6, .15);
+  composer.addPass(bloom);
+  const finalPass = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uShift: { value: 0 }, uPulse: { value: 0 }, uRes: { value: new THREE.Vector2(innerWidth, innerHeight) } },
+    vertexShader: `varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader: /* glsl */`
+      uniform sampler2D tDiffuse; uniform float uTime,uShift,uPulse; uniform vec2 uRes; varying vec2 vUv;
+      float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+      void main(){
+        vec2 uv=vUv; vec2 c=uv-.5;
+        float r2=dot(c,c);
+        uv+=c*r2*uPulse*.6;
+        vec2 off=c*(.002+uShift*.02+uPulse*.03);
+        vec3 col;
+        col.r=texture2D(tDiffuse,uv+off).r;
+        col.g=texture2D(tDiffuse,uv).g;
+        col.b=texture2D(tDiffuse,uv-off).b;
+        col*=1.-r2*1.1;
+        col+=(h(uv*uRes+fract(uTime)*100.)-.5)*.03;
+        gl_FragColor=vec4(col,1.);
+      }`
+  });
+  composer.addPass(finalPass);
+
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+    finalPass.uniforms.uRes.value.set(innerWidth, innerHeight);
+  });
+
+  /* ---- LOOP ---- */
+  const clock = new THREE.Clock();
+  const blobPos = new THREE.Vector3();
+  let hue = 0, smoothMouseX = 0, smoothMouseY = 0, warpS = 0, blobX = 0, blobS = 1;
+  const camTarget = new THREE.Vector3();
+  const tp = tGeo.attributes.position;
+
+  function frame() {
+    const dt = Math.min(clock.getDelta(), .05);
+    const t = clock.elapsedTime;
+
+    const prevP = smoothP;
+    smoothP = lerp(smoothP, scrollP, .08);
+    velocity = lerp(velocity, Math.abs(smoothP - prevP) * 60, .1);
+    pulse = lerp(pulse, 0, .035);
+    warpS = lerp(warpS, warpP, .08);
+    blobX = lerp(blobX, targetBlobX, .05);
+    blobS = lerp(blobS, targetBlobS, .05);
+    hue = lerp(hue, targetHue, .03);
+    smoothMouseX = lerp(smoothMouseX, mouse.nx, .06);
+    smoothMouseY = lerp(smoothMouseY, mouse.ny, .06);
+
+    // warp intensity peaks in middle of warp section
+    const wI = Math.sin(warpS * Math.PI);
+
+    // camera flies forward through the galaxy
+    const camZ = 6 - smoothP * 110;
+    camera.position.x = lerp(camera.position.x, smoothMouseX * .6, .05);
+    camera.position.y = lerp(camera.position.y, smoothMouseY * .4, .05);
+    camera.position.z = camZ;
+    camera.fov = 55 + wI * 35 + pulse * 10;
+    camera.updateProjectionMatrix();
+    camera.rotation.z = Math.sin(t * .2) * .03 + wI * Math.sin(t * 1.5) * .06;
+
+    // blob rides in front of camera
+    blobPos.set(blobX, 0, camZ - 6);
+    blob.position.copy(blobPos);
+    blob.rotation.y += dt * (.15 + velocity * 3);
+    blob.rotation.x = Math.sin(t * .3) * .3;
+    const bs = (1 - wI * .45 + pulse * .15) * blobS;
+    blob.scale.setScalar(bs);
+    ringGroup.position.copy(blobPos);
+    ringGroup.scale.setScalar(bs * (1 + pulse * .8));
+    rings.forEach((r, i) => {
+      r.rotation.x += dt * (.2 + i * .1);
+      r.rotation.y += dt * (.15 - i * .07);
+      const rad = r.geometry.parameters.radius, a = t * (1 + i * .6);
+      sats[i].position.set(Math.cos(a) * rad, Math.sin(a) * rad, 0);
+      sats[i].rotation.y = t * 3;
+      r.material.opacity = .55 * (1 - wI);
+    });
+
+    blobU.uTime.value = t;
+    blobU.uPulse.value = pulse;
+    blobU.uHue.value = hue;
+    blobU.uWarp.value = wI;
+    blobU.uVel.value = velocity;
+    blobU.uMouse.value.set(smoothMouseX, smoothMouseY);
+
+    starU.uTime.value = t; starU.uPulse.value = pulse; starU.uWarp.value = wI;
+    stars.rotation.z = t * .01 + smoothP * 1.5;
+
+    // warp streaks: stretch with warp intensity
+    tunnelMat.opacity = wI;
+    if (wI > .01) {
+      const len = .2 + wI * 9;
+      for (let i = 0; i < STREAKS; i++) {
+        const s = streakData[i];
+        s.z += dt * 60 * s.s * wI;
+        if (s.z > 0) s.z -= 120;
+        const x = Math.cos(s.a + t * .1) * s.r, y = Math.sin(s.a + t * .1) * s.r;
+        const zz = camZ - 2 + s.z;
+        tp.array[i * 6] = x; tp.array[i * 6 + 1] = y; tp.array[i * 6 + 2] = zz;
+        tp.array[i * 6 + 3] = x; tp.array[i * 6 + 4] = y; tp.array[i * 6 + 5] = zz - len * s.s;
+      }
+      tp.needsUpdate = true;
+    }
+
+    floaters.forEach(f => {
+      f.rotation.x += f.userData.rs.x; f.rotation.y += f.userData.rs.y;
+      f.position.y += Math.sin(t + f.userData.f) * .003;
+    });
+
+    bloom.strength = .7 + wI * .8 + pulse * 1.;
+    finalPass.uniforms.uTime.value = t;
+    finalPass.uniforms.uShift.value = Math.min(velocity * 2 + wI * .25, 1);
+    finalPass.uniforms.uPulse.value = pulse;
+
+    // DOM effects linked to GL state
+    document.documentElement.style.setProperty('--skew', clamp(velocity * 25, -3, 3) * (scrollY > lastY ? -1 : 1) + 'deg');
+    lastY = scrollY;
+    $('#warpSpeed').textContent = (wI * 9.99).toFixed(2) + 'c';
+
+
+    if (audio && audio.on) audio.filter.frequency.setTargetAtTime(300 + wI * 2500 + velocity * 3000 + pulse * 1500, audio.ctx.currentTime, .1);
+
+    composer.render();
+    requestAnimationFrame(frame);
+  }
+
+  // compile before reveal so first frame doesn't hitch
+  renderer.compile(scene, camera);
+  composer.render();
+  requestAnimationFrame(frame);
+}
+
+function domOnlyLoop() {
+  const prevP = smoothP;
+  smoothP = lerp(smoothP, scrollP, .08);
+  velocity = lerp(velocity, Math.abs(smoothP - prevP) * 60, .1);
+  $('#warpSpeed').textContent = (Math.sin(warpP * Math.PI) * 9.99).toFixed(2) + 'c';
+  requestAnimationFrame(domOnlyLoop);
+}
+
+$('#bigBang').addEventListener('click', e => { e.stopPropagation(); bang(e.clientX, e.clientY); });
+
+try {
+  startGL();
+} catch (err) {
+  console.warn('WebGL nedostupné', err);
+  document.documentElement.classList.add('no-webgl');
+  requestAnimationFrame(domOnlyLoop);
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(finishLoad); else finishLoad();
+setTimeout(finishLoad, 4000);
+</script>
+</body>
+</html>
