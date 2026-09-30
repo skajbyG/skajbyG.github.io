@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#0f172a">
 <title>Antiradar</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230f172a'/><circle cx='50' cy='50' r='30' fill='none' stroke='%2322d3ee' stroke-width='6'/><circle cx='50' cy='50' r='10' fill='%23f43f5e'/></svg>">
@@ -407,10 +406,20 @@ function categoryOf(tags) {
    ================================================================ */
 const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([49.8, 15.5], 7);
 L.control.zoom({ position: "bottomright" }).addTo(map);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-  maxZoom: 20, subdomains: "abcd",
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+// podklad: CARTO, při selhání automaticky OpenStreetMap
+const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+let baseLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+  maxZoom: 20, subdomains: "abcd", referrerPolicy: "strict-origin-when-cross-origin",
+  attribution: OSM_ATTR + ' &copy; <a href="https://carto.com/">CARTO</a>'
 }).addTo(map);
+let tilesOk = 0, tilesBad = 0;
+baseLayer.on("tileload", () => tilesOk++);
+baseLayer.on("tileerror", () => {
+  if (++tilesBad < 4 || tilesOk > 0 || baseLayer._fallback) return;
+  map.removeLayer(baseLayer);
+  baseLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin", attribution: OSM_ATTR }).addTo(map);
+  baseLayer._fallback = true;
+});
 const cluster = L.markerClusterGroup({ maxClusterRadius: 45, showCoverageOnHover: false, spiderfyOnMaxZoom: true, disableClusteringAtZoom: 17 });
 map.addLayer(cluster);
 let meMarker = null, radiusCircle = null;
