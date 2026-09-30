@@ -54,6 +54,11 @@ a{color:var(--accent)}
 
 /* markers */
 .pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.5)}
+.pinwrap{position:relative;width:30px;height:30px}
+.crmb{position:absolute;right:-7px;top:-7px;min-width:17px;height:17px;border-radius:9px;border:2px solid #fff;color:#fff;font-size:10px;line-height:13px;text-align:center;font-weight:800;font-style:normal}
+.crm{display:flex;flex-wrap:wrap;gap:6px}
+.crm button.active{outline:2px solid var(--accent);outline-offset:1px;font-weight:700}
+textarea#crmNote{width:100%;min-height:70px;margin-top:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:var(--text);font:inherit;resize:vertical}
 .pin span{transform:rotate(45deg);font-weight:800;font-size:11px;color:#fff}
 .me{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 6px rgba(34,211,238,.35)}
 .marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(239,68,68,.35)!important}
@@ -143,6 +148,8 @@ ul.why li::before{content:"★";color:var(--warn);font-size:13px;top:8px}
     <div class="li"><span class="sw" style="background:var(--warn)"></span>30–49 &nbsp;potřebuje osvěžit</div>
     <div class="li"><span class="sw" style="background:var(--good)"></span>&lt;30 &nbsp;v pořádku</div>
     <div class="li"><span class="sw" style="background:var(--none)"></span>bez webu / jen Facebook</div>
+    <div class="li"><span class="sw" style="background:#64748b"></span>? &nbsp;web se nepodařilo načíst</div>
+    <label class="li" style="margin-top:6px;cursor:pointer"><input type="checkbox" id="hideRej"> Skrýt „Nemá zájem“</label>
     <label class="small muted" style="display:block;margin-top:8px">Zobrazit od zašlosti: <b id="thrVal">30</b></label>
     <input type="range" id="thr" min="0" max="90" step="5" value="30">
     <div class="stats" id="stats">Zatím nic nenalezeno.</div>
@@ -527,6 +534,8 @@ function proxies(url) {
   list.push({ u: "https://api.allorigins.win/get?url=" + encodeURIComponent(url), json: true });
   list.push({ u: "https://corsproxy.io/?url=" + encodeURIComponent(url), raw: true });
   list.push({ u: "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(url), raw: true });
+  list.push({ u: "https://api.allorigins.win/raw?url=" + encodeURIComponent(url), raw: true });
+  list.push({ u: "https://everyorigin.jwvbremen.nl/api/get?url=" + encodeURIComponent(url), json: true });
   return list;
 }
 /* vrací {ok, html, code} nebo {ok:false, code, dead} */
@@ -536,7 +545,7 @@ async function fetchSite(url, signal) {
     if (signal?.aborted) throw new DOMException("aborted", "AbortError");
     tried++;
     try {
-      const r = await fetchTimeout(p.u, {}, 16000, signal);
+      const r = await fetchTimeout(p.u, {}, 12000, signal);
       if (p.json) {
         if (!r.ok) continue;
         const j = await r.json();
@@ -549,7 +558,7 @@ async function fetchSite(url, signal) {
         const html = (await r.text()).slice(0, 800000);
         if (html && html.length > 30) return { ok: true, html, code: r.status };
       } else if (p.trusted && r.status !== 429) return { ok: false, dead: true, tried };
-      else if (r.status >= 400 && r.status !== 403 && r.status !== 429) deadVotes++;
+      else if (r.status === 404 || r.status === 410) deadVotes++; // 5xx bývá chyba samotné proxy
     } catch (e) { if (signal?.aborted) throw e; }
   }
   return { ok: false, dead: deadVotes >= 2, tried };
@@ -702,7 +711,7 @@ async function analyzePlace(p, signal) {
       Object.assign(p, { kind: "unknown", score: null, minus: ["Web se nepodařilo automaticky načíst (blokace nebo výpadek proxy) – zkontroluj ho ručně."], plus: [], facts: {} });
     }
   }
-  store.set(cacheKey, { t: Date.now(), r: { kind: p.kind, score: p.score, minus: p.minus, plus: p.plus, facts: p.facts, finalUrl: p.finalUrl } });
+  if (p.kind !== "unknown") store.set(cacheKey, { t: Date.now(), r: { kind: p.kind, score: p.score, minus: p.minus, plus: p.plus, facts: p.facts, finalUrl: p.finalUrl } });
 }
 
 /* ================================================================
@@ -775,14 +784,40 @@ async function scan() {
     };
     await Promise.all(Array.from({ length: Math.max(1, Math.min(10, +settings.conc || 5)) }, worker));
     if (signal.aborted) showProgress(`Zastaveno. Analyzováno ${done} z ${total} webů.`, 100, true);
-    else showProgress(`Hotovo! Prošel jsem ${list.length} ${pl(list.length, "podnik", "podniky", "podniků")} a ${total} ${pl(total, "web", "weby", "webů")}.`, 100, true);
-    setTimeout(hideProgress, 5000);
+    else {
+      const unk = list.filter(p => p.kind === "unknown").length;
+      showProgress(`Hotovo! Prošel jsem ${list.length} ${pl(list.length, "podnik", "podniky", "podniků")} a ${total} ${pl(total, "web", "weby", "webů")}.` + (unk ? ` <button class="btn ghost small" id="retryAll">Zkusit znovu nenačtené (${unk})</button>` : ""), 100, true);
+      if (unk) $("#retryAll").onclick = retryUnknown; else setTimeout(hideProgress, 5000);
+    }
   } catch (e) {
     if (!signal.aborted) { showProgress("Chyba při hledání: " + esc(e.message) + ". Zkus to za chvíli znovu nebo zmenši okruh.", 100, true); setTimeout(hideProgress, 7000); }
     else hideProgress();
   } finally {
     state.running = false; $("#scanBtn").disabled = false; updateStats();
   }
+}
+async function reanalyze(places) {
+  const byUrl = new Map();
+  places.forEach(p => { try { localStorage.removeItem("antiradar:cache:" + p.url); } catch {} if (!byUrl.has(p.url)) byUrl.set(p.url, []); byUrl.get(p.url).push(p); });
+  const urls = [...byUrl.keys()]; let i = 0;
+  const worker = async () => {
+    while (i < urls.length) {
+      const group = byUrl.get(urls[i++]);
+      try { await analyzePlace(group[0]); } catch { group[0].kind = "unknown"; }
+      for (const q of group.slice(1)) Object.assign(q, { kind: group[0].kind, score: group[0].score, minus: group[0].minus, plus: group[0].plus, facts: group[0].facts, finalUrl: group[0].finalUrl });
+      group.forEach(addMarker); updateStats();
+    }
+  };
+  await Promise.all(Array.from({ length: 3 }, worker));
+}
+async function retryUnknown() {
+  const unk = [...state.places.values()].filter(p => p.kind === "unknown");
+  if (!unk.length || state.running) return;
+  state.running = true; $("#scanBtn").disabled = true;
+  showProgress(`Znovu zkouším ${unk.length} nenačtených webů…`, 50, true);
+  try { await reanalyze(unk); } finally { state.running = false; $("#scanBtn").disabled = false; }
+  const left = [...state.places.values()].filter(p => p.kind === "unknown").length;
+  showProgress(`Hotovo. Nenačtených zbývá: ${left}.`, 100, true); setTimeout(hideProgress, 5000);
 }
 function showProgress(html, pct, final) { $("#progress").style.display = "block"; $("#progText").innerHTML = html; $("#progBar").style.width = pct + "%"; $("#stopBtn").style.display = state.running && !final ? "" : "none"; }
 function hideProgress() { if (!state.running) $("#progress").style.display = "none"; }
@@ -794,16 +829,29 @@ $("#stopBtn").onclick = () => state.abort?.abort();
    ================================================================ */
 function visible(p) {
   if (p.kind === "pending") return false;
+  if (settings.hideRejected && crmGet(p.id).s === "nezajem") return false;
   if (p.kind === "noweb") return settings.noWeb;
-  if (p.kind === "unknown") return state.threshold <= 0;
+  if (p.kind === "unknown") return true;
   return (p.score ?? 0) >= state.threshold;
 }
+/* ---------- CRM: stav oslovení + poznámka (jen v tomto prohlížeči) ---------- */
+const CRM = {
+  "": { label: "Neosloveno", color: "" },
+  osloveno: { label: "Osloveno", color: "#38bdf8", badge: "O" },
+  zajem: { label: "Má zájem", color: "#22c55e", badge: "Z" },
+  klient: { label: "Klient", color: "#eab308", badge: "K" },
+  nezajem: { label: "Nemá zájem", color: "#64748b", badge: "×" }
+};
+function crmGet(id) { return store.get("crm:" + id, { s: "", note: "" }); }
+function crmSet(id, v) { store.set("crm:" + id, { ...crmGet(id), ...v, t: Date.now() }); }
 function addMarker(p) {
   if (p.marker) { cluster.removeLayer(p.marker); p.marker = null; }
   if (!visible(p)) return;
   const label = p.kind === "noweb" ? "∅" : p.kind === "social" ? "f" : p.kind === "unknown" ? "?" : p.score;
   const bg = p.kind === "unknown" ? "#64748b" : scoreHex(p.score ?? 0, p.kind);
-  const icon = L.divIcon({ className: "", html: `<div class="pin" style="background:${bg}"><span>${label}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] });
+  const crm = CRM[crmGet(p.id).s] || CRM[""];
+  const badge = crm.badge ? `<b class="crmb" style="background:${crm.color}">${crm.badge}</b>` : "";
+  const icon = L.divIcon({ className: "", html: `<div class="pinwrap"><div class="pin" style="background:${bg}"><span>${label}</span></div>${badge}</div>`, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] });
   p.marker = L.marker([p.lat, p.lon], { icon, title: p.name });
   p.marker.bindTooltip(`<b>${esc(p.name)}</b><br>${esc(p.cat.label)}`, { direction: "top", offset: [0, -28] });
   p.marker.on("click", () => openPanel(p));
@@ -816,10 +864,14 @@ function updateStats() {
   const shown = all.filter(visible).length;
   const bad = all.filter(p => p.kind !== "noweb" && p.kind !== "pending" && (p.score ?? 0) >= 50).length;
   const nw = all.filter(p => p.kind === "noweb").length;
-  $("#stats").innerHTML = `Na mapě: <b>${shown}</b> · podniků: ${all.length}<br>Silní kandidáti (50+): <b>${bad}</b>${settings.noWeb ? ` · bez webu: ${nw}` : ""}`;
+  const unk = all.filter(p => p.kind === "unknown").length;
+  const done = all.filter(p => crmGet(p.id).s).length;
+  $("#stats").innerHTML = `Na mapě: <b>${shown}</b> · podniků: ${all.length}<br>Silní kandidáti (50+): <b>${bad}</b>${settings.noWeb ? ` · bez webu: ${nw}` : ""}${unk ? ` · nenačteno: ${unk}` : ""}${done ? `<br>Osloveno / v řešení: ${done}` : ""}`;
 }
 $("#thr").value = state.threshold; $("#thrVal").textContent = state.threshold;
 $("#thr").addEventListener("input", e => { state.threshold = +e.target.value; $("#thrVal").textContent = state.threshold; store.set("thr", state.threshold); rerenderMarkers(); });
+$("#hideRej").checked = !!settings.hideRejected;
+$("#hideRej").addEventListener("change", e => { settings.hideRejected = e.target.checked; store.set("settings", settings); rerenderMarkers(); });
 $("#legendToggle").onclick = () => $("#legend").classList.toggle("collapsed");
 if (matchMedia("(max-width:700px)").matches) $("#legend").classList.add("collapsed");
 
@@ -1013,6 +1065,7 @@ function renderBody(p, ai, aiState) {
       <a class="btn ghost small" href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}" target="_blank" rel="noopener noreferrer">Navigovat</a>
       ${webUrl && p.kind === "web" ? `<button class="btn ghost small" id="psBtn">Změřit rychlost</button>` : ""}
       <button class="btn ghost small" id="copyBtn">Kopírovat</button>
+      ${p.url && p.kind !== "social" ? `<button class="btn ghost small" id="retryBtn">${p.kind === "unknown" ? "Zkusit načíst znovu" : "Analyzovat znovu"}</button>` : ""}
     </div>
     <div id="psOut" class="small muted" style="margin-top:6px"></div>
 
@@ -1025,6 +1078,11 @@ function renderBody(p, ai, aiState) {
     <div class="section"><h3>Plusy</h3><ul class="pm plus">${li(plus)}</ul></div>
     <div class="section"><h3>Mínusy</h3><ul class="pm minus">${li(minus)}</ul></div>
     <div class="section"><h3>Proč je to dobrý kandidát</h3><ul class="pm why">${li(why)}</ul></div>
+    <div class="section"><h3>Stav obchodu</h3>
+      <div class="crm" id="crmBtns">${Object.entries(CRM).map(([k, v]) => `<button class="btn ghost small ${crmGet(p.id).s === k ? "active" : ""}" data-s="${k}">${v.label}</button>`).join("")}</div>
+      <textarea id="crmNote" placeholder="Poznámka – s kým jste mluvili, co chtějí, kdy se ozvat…">${esc(crmGet(p.id).note || "")}</textarea>
+      <div class="small muted">Ukládá se jen v tomto prohlížeči.</div>
+    </div>
     <p class="small muted" style="margin-top:18px">Data: © přispěvatelé OpenStreetMap. Automatická analýza je orientační – před oslovením web vždy projdi ručně.</p>`;
   $("#psBtn")?.addEventListener("click", async ev => {
     ev.target.disabled = true; $("#psOut").innerHTML = '<span class="spin"></span> Měřím mobilní výkon přes Google PageSpeed (až 60 s)…';
@@ -1032,6 +1090,18 @@ function renderBody(p, ai, aiState) {
       const r = await pageSpeed(p);
       $("#psOut").innerHTML = `Mobilní výkon: <b style="color:${r.perf < 50 ? "var(--bad)" : r.perf < 90 ? "var(--warn)" : "var(--good)"}">${r.perf}/100</b>${r.lcp ? ` · načtení hlavního obsahu ${esc(r.lcp)}` : ""}${r.perf < 50 ? " – web je na mobilu pomalý, další argument pro předělání." : ""}`;
     } catch (e) { $("#psOut").textContent = "PageSpeed selhal: " + e.message + (settings.psi ? "" : " (bez API klíče je limit velmi nízký)"); ev.target.disabled = false; }
+  });
+  $("#crmBtns").onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    crmSet(p.id, { s: b.dataset.s });
+    $("#crmBtns").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
+    addMarker(p); updateStats(); toast("Stav uložen: " + CRM[b.dataset.s].label);
+  };
+  $("#crmNote").oninput = e => { clearTimeout(e.target._t); e.target._t = setTimeout(() => crmSet(p.id, { note: e.target.value }), 400); };
+  $("#retryBtn")?.addEventListener("click", async ev => {
+    ev.target.disabled = true; ev.target.innerHTML = '<span class="spin"></span> Načítám…';
+    await reanalyze([p]);
+    if (currentId === p.id) openPanel(p);
   });
   $("#copyBtn").onclick = () => {
     const txt = `${p.name} (${p.cat.label})\n${p.addr || ""}\nWeb: ${webUrl || "nemá"}\nTelefon: ${phone || "-"}\nE-mail: ${email || "-"}\nZašlost: ${p.score ?? "-"}\n\n${desc}\n\nPLUSY:\n${plus.map(x => "+ " + x).join("\n")}\n\nMÍNUSY:\n${minus.map(x => "- " + x).join("\n")}\n\nPROČ KANDIDÁT:\n${why.map(x => "* " + x).join("\n")}`;
