@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0f172a">
+<title>Antiradar</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230f172a'/><circle cx='50' cy='50' r='30' fill='none' stroke='%2322d3ee' stroke-width='6'/><circle cx='50' cy='50' r='10' fill='%23f43f5e'/></svg>">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<style>
+:root{
+  --bg:#0b1120; --panel:#111827; --panel2:#1f2937; --line:#334155; --text:#e5e7eb; --muted:#94a3b8;
+  --accent:#22d3ee; --accent2:#0891b2; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --crit:#be123c; --none:#a855f7;
+  --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--accent)}
+#map{position:fixed;inset:0;z-index:1}
+
+/* top bar */
+#topbar{position:fixed;top:12px;left:12px;right:12px;z-index:500;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  background:rgba(17,24,39,.92);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;box-shadow:var(--shadow)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.5px;margin-right:6px}
+.brand .dot{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle,#f43f5e 0 28%,transparent 30%),radial-gradient(circle,transparent 0 55%,var(--accent) 57% 66%,transparent 68%);border:2px solid var(--accent);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,211,238,.6)}70%{box-shadow:0 0 0 10px rgba(34,211,238,0)}100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--panel2);padding:5px 10px;border-radius:999px;cursor:pointer;font-size:13px;white-space:nowrap}
+.chip.active{background:var(--accent);color:#04202a;border-color:var(--accent);font-weight:700}
+.btn{border:0;background:var(--accent);color:#04202a;font-weight:700;padding:8px 14px;border-radius:10px;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line);font-weight:500}
+.btn.danger{background:var(--bad);color:#fff}
+.spacer{flex:1}
+.iconbtn{background:var(--panel2);border:1px solid var(--line);border-radius:10px;width:36px;height:36px;cursor:pointer;display:grid;place-items:center}
+
+/* progress */
+#progress{position:fixed;left:12px;right:12px;top:72px;z-index:450;display:none;background:rgba(17,24,39,.92);border:1px solid var(--line);border-radius:var(--radius);padding:8px 12px;box-shadow:var(--shadow);font-size:13px}
+#progress .bar{height:6px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:6px}
+#progress .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--bad));transition:width .3s}
+#progress .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* legend / filter */
+#legend{position:fixed;left:12px;bottom:14px;z-index:450;background:rgba(17,24,39,.92);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;font-size:12.5px;box-shadow:var(--shadow);max-width:280px}
+#legend .li{display:flex;align-items:center;gap:6px;margin:2px 0}
+#legend .sw{width:12px;height:12px;border-radius:50%}
+#legend input[type=range]{width:100%}
+#legend .stats{color:var(--muted);margin-top:4px}
+#legendToggle{display:none}
+
+/* markers */
+.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.5)}
+.pin span{transform:rotate(45deg);font-weight:800;font-size:11px;color:#fff}
+.me{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 6px rgba(34,211,238,.35)}
+.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(239,68,68,.35)!important}
+.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:rgba(190,18,60,.9)!important;color:#fff;font-weight:700}
+
+/* detail panel */
+#panel{position:fixed;z-index:600;top:0;right:0;bottom:0;width:min(470px,100%);background:var(--panel);border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(105%);transition:transform .25s ease;display:flex;flex-direction:column}
+#panel.open{transform:none}
+#panel header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+#panel .body{overflow:auto;padding:14px 16px 40px;flex:1}
+#panel h2{margin:0;font-size:19px;line-height:1.25}
+#panel .sub{color:var(--muted);font-size:13px}
+.score{flex:0 0 auto;width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;position:relative}
+.score small{position:absolute;bottom:-16px;font-size:10px;color:var(--muted);font-weight:500;white-space:nowrap}
+.section{margin-top:18px}
+.section h3{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.desc{white-space:pre-line;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+ul.pm{list-style:none;margin:0;padding:0}
+ul.pm li{padding:7px 10px 7px 34px;position:relative;border-radius:10px;margin-bottom:5px;background:var(--panel2)}
+ul.pm li::before{position:absolute;left:10px;top:6px;font-weight:900;font-size:16px}
+ul.plus li::before{content:"+";color:var(--good)}
+ul.minus li::before{content:"−";color:var(--bad)}
+ul.why li::before{content:"★";color:var(--warn);font-size:13px;top:8px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.kv b{color:var(--muted);font-weight:500}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.close{background:none;border:0;font-size:26px;line-height:1;cursor:pointer;color:var(--muted);margin-left:auto}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:900;background:rgba(2,6,23,.75);display:none;align-items:center;justify-content:center;padding:16px}
+.modal.open{display:flex}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;max-width:520px;width:100%;box-shadow:var(--shadow);max-height:92vh;overflow:auto}
+.card h1{margin:0 0 6px;font-size:24px}
+.card label{display:block;margin:12px 0 4px;font-size:13px;color:var(--muted)}
+.card input[type=text],.card input[type=password],.card input[type=number]{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.card .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.check{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px}
+.radar{width:120px;height:120px;margin:4px auto 12px;border-radius:50%;position:relative;border:2px solid var(--accent2);background:
+  radial-gradient(circle,transparent 0 30%,rgba(34,211,238,.25) 31% 32%,transparent 33% 62%,rgba(34,211,238,.25) 63% 64%,transparent 65%);overflow:hidden}
+.radar::after{content:"";position:absolute;inset:0;background:conic-gradient(from 0deg,rgba(34,211,238,.55),transparent 25%);animation:sp 2.5s linear infinite;border-radius:50%}
+.radar i{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--bad);box-shadow:0 0 8px var(--bad)}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:1000;background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:12px;box-shadow:var(--shadow);display:none;max-width:90vw}
+
+@media (max-width:700px){
+  #topbar{top:8px;left:8px;right:8px;padding:6px 8px;gap:6px}
+  .brand span.t{display:none}
+  .chips{order:5;flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{padding:4px 8px;font-size:12px}
+  #progress{top:auto;bottom:70px;left:8px;right:8px}
+  #panel{top:auto;height:88vh;width:100%;border-left:0;border-top:1px solid var(--line);border-radius:18px 18px 0 0;transform:translateY(105%)}
+  #panel.open{transform:none}
+  #legend{left:8px;bottom:8px;max-width:calc(100% - 16px)}
+  #legend.collapsed .inner{display:none}
+  #toast{bottom:auto;top:100px}
+  #legendToggle{display:inline-block}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="topbar">
+  <div class="brand"><div class="dot"></div><span class="t">ANTIRADAR</span></div>
+  <div class="chips" id="radiusChips"></div>
+  <button class="btn" id="scanBtn" disabled>Najít</button>
+  <div class="spacer"></div>
+  <button class="iconbtn" id="locBtn" title="Změnit polohu">📍</button>
+  <button class="iconbtn" id="settingsBtn" title="Nastavení">⚙️</button>
+</div>
+
+<div id="progress">
+  <div class="row"><span id="progText">…</span><span class="spacer"></span><button class="btn ghost small" id="stopBtn">Zastavit</button></div>
+  <div class="bar"><i id="progBar"></i></div>
+</div>
+
+<div id="legend">
+  <div style="display:flex;align-items:center;gap:8px"><b>Zašlost webu</b><span class="spacer"></span><button class="btn ghost small" id="legendToggle" style="padding:2px 8px">▾</button></div>
+  <div class="inner">
+    <div class="li"><span class="sw" style="background:var(--crit)"></span>70+ &nbsp;kritický stav</div>
+    <div class="li"><span class="sw" style="background:var(--bad)"></span>50–69 &nbsp;výrazně zastaralý</div>
+    <div class="li"><span class="sw" style="background:var(--warn)"></span>30–49 &nbsp;potřebuje osvěžit</div>
+    <div class="li"><span class="sw" style="background:var(--good)"></span>&lt;30 &nbsp;v pořádku</div>
+    <div class="li"><span class="sw" style="background:var(--none)"></span>bez webu / jen Facebook</div>
+    <label class="small muted" style="display:block;margin-top:8px">Zobrazit od zašlosti: <b id="thrVal">30</b></label>
+    <input type="range" id="thr" min="0" max="90" step="5" value="30">
+    <div class="stats" id="stats">Zatím nic nenalezeno.</div>
+  </div>
+</div>
+
+<aside id="panel" aria-live="polite">
+  <header>
+    <div class="score" id="pScore">–<small>zašlost</small></div>
+    <div style="min-width:0">
+      <h2 id="pName">–</h2>
+      <div class="sub" id="pSub"></div>
+    </div>
+    <button class="close" id="pClose" aria-label="Zavřít">×</button>
+  </header>
+  <div class="body" id="pBody"></div>
+</aside>
+
+<!-- consent / start -->
+<div class="modal open" id="startModal">
+  <div class="card">
+    <div class="radar"><i style="left:30%;top:40%"></i><i style="left:65%;top:25%"></i><i style="left:55%;top:70%"></i></div>
+    <h1>Antiradar</h1>
+    <p class="muted">Najde podniky ve tvém okolí, projede jejich weby a na mapě ukáže ty, jejichž stránky jsou zastaralé, rozbité nebo úplně chybí – tedy ideální kandidáty na nový web.</p>
+    <p><b>Potřebujeme tvou polohu.</b> Použije se jen v tvém prohlížeči k vyhledání podniků v okolí a nikam se neukládá.</p>
+    <div class="row">
+      <button class="btn" id="allowLoc">Povolit přístup k poloze</button>
+      <button class="btn ghost" id="manualLoc">Zadat místo ručně</button>
+    </div>
+    <div id="manualBox" style="display:none">
+      <label for="placeInput">Město, ulice nebo adresa</label>
+      <div class="row" style="margin-top:0">
+        <input type="text" id="placeInput" placeholder="např. Brno, Masarykova" style="flex:1">
+        <button class="btn" id="placeGo">Hledat</button>
+      </div>
+      <p class="small muted">Tip: můžeš také kdykoli kliknout pravým tlačítkem (nebo dlouze podržet) na mapě a nastavit střed hledání tam.</p>
+    </div>
+    <p class="small muted" id="startMsg"></p>
+  </div>
+</div>
+
+<!-- settings -->
+<div class="modal" id="settingsModal">
+  <div class="card">
+    <h1>Nastavení</h1>
+    <p class="small muted">Vše se ukládá jen v tomto prohlížeči (localStorage).</p>
+    <div class="check"><input type="checkbox" id="sNoWeb"><label for="sNoWeb" style="margin:0;color:var(--text)">Zobrazovat i podniky úplně bez webu (fialové)</label></div>
+    <div class="check"><input type="checkbox" id="sChains" ><label for="sChains" style="margin:0;color:var(--text)">Zahrnout i řetězce a velké značky</label></div>
+    <label for="sConc">Počet webů analyzovaných současně</label>
+    <input type="number" id="sConc" min="1" max="10" value="5">
+    <label for="sAi">Claude API klíč (volitelné – pro AI popisy firem)</label>
+    <input type="password" id="sAi" placeholder="sk-ant-…" autocomplete="off">
+    <label for="sModel">Model Claude</label>
+    <input type="text" id="sModel" placeholder="claude-opus-5-5">
+    <label for="sPsi">Google PageSpeed API klíč (volitelné – měření rychlosti)</label>
+    <input type="password" id="sPsi" placeholder="AIza…" autocomplete="off">
+    <label for="sProxy">Vlastní CORS proxy (volitelné, prefix URL)</label>
+    <input type="text" id="sProxy" placeholder="https://muj-worker.workers.dev/?url=">
+    <p class="small muted">Bez AI klíče se popis skládá automaticky z dat OpenStreetMap a obsahu webu. S klíčem ho napíše Claude.</p>
+    <div class="row">
+      <button class="btn" id="sSave">Uložit</button>
+      <button class="btn ghost" id="sClose">Zavřít</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="sClear" title="Smaže uložené analýzy a AI popisy">Vymazat cache</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+"use strict";
+/* ================================================================
+   ANTIRADAR – vyhledávání podniků se zastaralými weby
+   Data: OpenStreetMap (Overpass API), analýza webů přes CORS proxy
+   ================================================================ */
+
+const RADII = [1, 2, 5, 10, 15, 20, 30];
+const YEAR = new Date().getFullYear();
+const OVERPASS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter"
+];
+
+/* ---------- storage helpers (vše v try/catch) ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("antiradar:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("antiradar:" + k, JSON.stringify(v)); } catch {} },
+  clearCache() { try { Object.keys(localStorage).filter(k => k.startsWith("antiradar:cache:") || k.startsWith("antiradar:ai:")).forEach(k => localStorage.removeItem(k)); } catch {} }
+};
+const settings = Object.assign({ noWeb: true, chains: false, conc: 5, ai: "", model: "claude-opus-5-5", psi: "", proxy: "", radius: 5 }, store.get("settings", {}));
+
+/* ---------- state ---------- */
+const state = { center: null, radius: settings.radius, places: new Map(), running: false, abort: null, threshold: store.get("thr", 30) };
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function toast(msg, ms = 3500) { const t = $("#toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", ms); }
+function haversine(a, b) {
+  const R = 6371, toR = x => x * Math.PI / 180;
+  const dLat = toR(b[0] - a[0]), dLon = toR(b[1] - a[1]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[0])) * Math.cos(toR(b[0])) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function pl(n, one, few, many) { return n === 1 ? one : n >= 2 && n <= 4 ? few : many; }
+function words(s) { return (s.trim().match(/\S+/g) || []).length; }
+function fetchTimeout(url, opts = {}, ms = 15000, outerSignal) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  const onAbort = () => ctl.abort();
+  outerSignal?.addEventListener("abort", onAbort);
+  return fetch(url, { ...opts, signal: ctl.signal }).finally(() => { clearTimeout(t); outerSignal?.removeEventListener("abort", onAbort); });
+}
+function normUrl(u) {
+  u = String(u).trim().split(/[;\s]/)[0];
+  if (!u) return null;
+  if (!/^https?:\/\//i.test(u)) u = "http://" + u.replace(/^\/+/, "");
+  try { return new URL(u).href; } catch { return null; }
+}
+function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, "").toLowerCase(); } catch { return ""; } }
+function scoreColor(s, kind) {
+  if (kind === "noweb" || kind === "social") return "var(--none)";
+  if (s >= 70) return "var(--crit)"; if (s >= 50) return "var(--bad)"; if (s >= 30) return "var(--warn)"; return "var(--good)";
+}
+function scoreHex(s, kind) {
+  if (kind === "noweb" || kind === "social") return "#a855f7";
+  if (s >= 70) return "#be123c"; if (s >= 50) return "#ef4444"; if (s >= 30) return "#f59e0b"; return "#22c55e";
+}
+
+/* ================================================================
+   Kategorie podniků – popisky a oborové texty pro popis firmy
+   ================================================================ */
+const CAT = {
+  "amenity=restaurant": ["restaurace", "Restaurace žije z první dojmu – host si podnik často vybírá podle fotek jídel, aktuálního menu a recenzí, které najde v mobilu ještě na ulici. Typicky nabízí polední menu, stálý jídelní lístek, rezervace stolů a pořádání akcí či oslav.", "U restaurací lidé na webu hledají hlavně denní menu, otevírací dobu a možnost rezervace – moderní web s rychlou mobilní verzí přímo zvyšuje obsazenost stolů."],
+  "amenity=cafe": ["kavárna", "Kavárna stojí na atmosféře, kvalitě kávy a sladkostí a na pravidelných zákaznících. Kromě posezení často nabízí dezerty, snídaně, kávu s sebou, případně pořádá komunitní akce, výstavy nebo koncerty.", "Kavárny soutěží atmosférou – web s kvalitními fotkami interiéru, nabídkou a akcemi je pro ně vizitka, která přivádí nové hosty i z Instagramu a Map Google."],
+  "amenity=bar": ["bar", "Bar se zaměřuje na večerní posezení, míchané nápoje a společenskou atmosféru, často doplněnou o hudbu, DJ večery nebo soukromé akce.", "Bary lákají nové hosty přes akce a atmosféru; aktuální web s programem a rezervacemi dokáže podnik odlišit od konkurence."],
+  "amenity=pub": ["hospoda / pivnice", "Hospoda je místem pro pravidelné štamgasty i náhodné kolemjdoucí – nabízí čepované pivo, často domácí kuchyni, polední menu, sportovní přenosy nebo salonek pro oslavy.", "I tradiční hospody dnes získávají hosty přes internet – denní menu, fotky a rezervace salonku na mobilním webu jsou snadný a měřitelný přínos."],
+  "amenity=fast_food": ["rychlé občerstvení", "Provozovna rychlého občerstvení vsází na rychlost, dostupnost a jednoduchou nabídku jídel s sebou, často s možností rozvozu.", "U rychlého občerstvení rozhoduje mobil – přehledná nabídka a online objednávky na vlastním webu šetří provize rozvozovým platformám."],
+  "amenity=dentist": ["zubní ordinace", "Zubní ordinace poskytuje preventivní prohlídky, dentální hygienu, výplně, ošetření kořenových kanálků, případně protetiku a estetickou stomatologii.", "Pacienti hledají zubaře hlavně online a posuzují důvěryhodnost podle webu – moderní stránka s ceníkem, informací o přijímání nových pacientů a online objednáním buduje důvěru."],
+  "amenity=doctors": ["lékařská ordinace", "Lékařská ordinace pečuje o zdraví pacientů, vede preventivní prohlídky, vyšetření a dlouhodobou péči, a pacienti u ní nejčastěji potřebují znát ordinační hodiny, změny a způsob objednání.", "Ordinace řeší stále dokola stejné dotazy po telefonu – přehledný web s ordinačními hodinami, aktualitami a online objednáním ušetří personálu spoustu času."],
+  "amenity=clinic": ["klinika", "Klinika sdružuje specializované lékařské služby a vyšetření pod jednou střechou a pacienty často přijímá na objednání.", "Klinika si pacienty získává důvěrou – profesionální web s představením lékařů, službami a online objednáním je u ní klíčový."],
+  "amenity=pharmacy": ["lékárna", "Lékárna vydává léky na předpis i volně prodejné přípravky, nabízí doplňky stravy, kosmetiku a odborné poradenství.", "Nezávislé lékárny soupeří s řetězci – web s rezervací léků a přehledem služeb jim pomáhá udržet si místní zákazníky."],
+  "amenity=veterinary": ["veterinární ordinace", "Veterinární ordinace se stará o zdraví domácích mazlíčků – očkování, preventivní prohlídky, čipování, chirurgické zákroky i pohotovostní péči.", "Majitelé zvířat hledají veterináře online, často v akutní situaci – rychlý mobilní web s kontaktem, ordinačními hodinami a pohotovostí je zásadní."],
+  "amenity=car_wash": ["myčka aut", "Myčka nabízí ruční či automatické mytí vozidel, čištění interiéru, voskování a další péči o auto.", "Myčky mohou díky webu prodávat balíčky, dárkové poukazy a online rezervace termínů."],
+  "amenity=driving_school": ["autoškola", "Autoškola připravuje žadatele o řidičský oprávnění – teorie, jízdy, kondiční jízdy a zkoušky pro různé skupiny vozidel.", "Klienti autoškol jsou většinou mladí lidé, kteří vybírají výhradně na mobilu – moderní web s ceníkem a online přihláškou je pro ně rozhodující."],
+  "amenity=kindergarten": ["mateřská škola / školka", "Školka zajišťuje předškolní vzdělávání a péči o děti, rodičům poskytuje informace o zápisu, programu a akcích.", "Rodiče vybírají školku pečlivě a online – přehledný web s fotkami, programem a informacemi o zápisu výrazně pomáhá."],
+  "amenity=language_school": ["jazyková škola", "Jazyková škola nabízí kurzy cizích jazyků pro jednotlivce, skupiny i firmy, často včetně přípravy na mezinárodní zkoušky.", "Jazykové školy získávají studenty přes internet – web s rozvrhem kurzů, ceníkem a online přihláškou přímo zvyšuje obsazenost."],
+  "amenity=bicycle_rental": ["půjčovna kol", "Půjčovna nabízí kola a elektrokola k zapůjčení, často s tipy na výlety a servisem.", "Půjčovny žijí z turistů, kteří plánují na mobilu – online rezervace je u nich standard."],
+  "amenity=car_rental": ["autopůjčovna", "Autopůjčovna pronajímá osobní či užitková vozidla na krátkodobé i dlouhodobé období.", "Autopůjčovny bez online rezervace ztrácejí zákazníky ve prospěch velkých portálů."],
+  "amenity=nightclub": ["noční klub", "Noční klub pořádá večírky, koncerty a DJ sety a žije z pravidelného programu akcí.", "Kluby potřebují web s aktuálním programem a prodejem vstupenek."],
+  "amenity=ice_cream": ["zmrzlinárna", "Zmrzlinárna nabízí točenou či kopečkovou zmrzlinu, často vlastní výroby, a sezónní dezerty.", "Zmrzlinárny mohou webem podpořit sezónní nabídku a objednávky dortů."],
+  "shop=bakery": ["pekárna", "Pekárna peče chléb, pečivo, sladké i slané výrobky, často podle tradičních receptur, a nabízí i objednávky na zakázku.", "Pekárny mohou přes web přijímat objednávky na oslavy a firmy – u lokální pekárny je to snadný zdroj příjmů navíc."],
+  "shop=pastry": ["cukrárna", "Cukrárna nabízí dorty, zákusky a sladkosti, často i dorty na zakázku na svatby a oslavy.", "Dorty na zakázku se vybírají podle fotek – web s galerií a objednávkovým formulářem je pro cukrárnu ideální prodejní nástroj."],
+  "shop=butcher": ["řeznictví", "Řeznictví nabízí čerstvé maso, uzeniny a lahůdky, často z vlastní výroby nebo od místních chovatelů.", "Řeznictví mohou webem prodávat grilovací balíčky, objednávky na svátky a propagovat vlastní výrobu."],
+  "shop=florist": ["květinářství", "Květinářství připravuje kytice, svatební a smuteční vazby, dekorace a prodává pokojové rostliny.", "Květiny se často kupují online jako dárek – e-shop s rozvozem je pro květinářství obrovská příležitost."],
+  "shop=hairdresser": ["kadeřnictví", "Kadeřnictví nabízí střihy, barvení, melírování, společenské účesy a péči o vlasy pro ženy, muže i děti.", "Salony dnes žijí z online rezervací – web s ceníkem, galerií prací a rezervačním systémem naplní volné termíny."],
+  "shop=beauty": ["kosmetický salon", "Kosmetický salon poskytuje ošetření pleti, manikúru, pedikúru, líčení, depilace a další procedury péče o krásu.", "Beauty obor se prodává vizuálně – moderní web s fotkami, ceníkem a online rezervací je pro salony zásadní."],
+  "shop=clothes": ["obchod s oblečením", "Obchod nabízí oděvy a doplňky, často s pečlivě vybraným sortimentem a osobním přístupem k zákazníkům.", "Módní obchody bez e-shopu přicházejí o velkou část tržeb – web s katalogem může přivést zákazníky i z okolních měst."],
+  "shop=shoes": ["obchod s obuví", "Obchod s obuví nabízí boty pro celou rodinu, poradenství s velikostmi a často i opravy.", "Web s nabídkou a možností rezervace velikosti pomáhá lokálním obchodům konkurovat e-shopům."],
+  "shop=optician": ["oční optika", "Oční optika nabízí měření zraku, brýle, obruby, kontaktní čočky a servis brýlí.", "Optiky mohou přes web nabízet online objednání na měření zraku – to jim přímo plní kalendář."],
+  "shop=jewelry": ["zlatnictví / klenoty", "Zlatnictví prodává šperky, snubní prsteny a hodinky, často nabízí i výrobu na zakázku a opravy.", "Šperky se vybírají podle fotek – elegantní web s galerií a konfigurátorem snubních prstenů je silný prodejní nástroj."],
+  "shop=car_repair": ["autoservis", "Autoservis zajišťuje opravy a údržbu vozidel, servisní prohlídky, diagnostiku, pneuservis a přípravu na STK.", "Motoristé hledají servis v okolí na mobilu – web s ceníkem, službami a online objednáním termínu přivádí nové zakázky."],
+  "shop=car": ["prodejce automobilů", "Autosalon či bazar prodává nová nebo ojetá vozidla, nabízí financování, výkup a servis.", "Prodejci aut potřebují aktuální nabídku vozů online – napojení skladu na web přímo generuje poptávky."],
+  "shop=bicycle": ["cykloprodejna / servis", "Prodejna kol nabízí jízdní kola, elektrokola, doplňky a servis.", "Cyklistika je sezónní a online – web s nabídkou a objednáním servisu pomáhá rozložit práci během roku."],
+  "shop=furniture": ["prodejna nábytku", "Prodejna nabízí nábytek a bytové doplňky, často včetně návrhu interiéru a výroby na míru.", "Nábytek se vybírá dlouho a online – kvalitní web s realizacemi přesvědčí zákazníka ještě před návštěvou prodejny."],
+  "shop=hardware": ["železářství", "Železářství nabízí nářadí, spojovací materiál, potřeby pro dům a zahradu a odborné rady.", "Lokální železářství může webem ukázat sortiment a nabídnout rezervaci zboží k vyzvednutí."],
+  "shop=doityourself": ["hobbymarket / stavebniny", "Prodejna nabízí stavební materiál, nářadí a potřeby pro kutily.", "Web s katalogem a poptávkovým formulářem pomůže získat větší zakázky od řemeslníků."],
+  "shop=electronics": ["prodejna elektroniky", "Obchod prodává elektroniku a spotřebiče, často nabízí i servis a poradenství.", "V elektronice rozhoduje online – bez moderního webu se lokální prodejna těžko prosadí."],
+  "shop=mobile_phone": ["prodejna a servis mobilů", "Prodejna nabízí telefony, příslušenství a opravy displejů či baterií.", "Lidé hledají opravu mobilu okamžitě online – web s ceníkem oprav přivádí zákazníky každý den."],
+  "shop=computer": ["počítačový obchod / servis", "Firma prodává počítače a příslušenství, zajišťuje opravy a IT servis.", "IT firma se zastaralým webem působí nedůvěryhodně – modernizace je zde logickým argumentem."],
+  "shop=gift": ["dárkový obchod", "Obchod nabízí dárky, dekorace a drobnosti, často od místních výrobců.", "Dárkové obchody mohou webem a e-shopem prodávat i mimo otevírací dobu."],
+  "shop=books": ["knihkupectví", "Knihkupectví nabízí knihy, poradenství při výběru a často pořádá autorská čtení.", "Web s akcemi a objednávkami pomáhá lokálnímu knihkupectví konkurovat velkým e-shopům."],
+  "shop=pet": ["chovatelské potřeby", "Prodejna nabízí krmiva, potřeby a doplňky pro domácí zvířata.", "Chovatelské potřeby se často objednávají opakovaně – jednoduchý e-shop s rozvozem je pro prodejnu příležitost."],
+  "shop=convenience": ["smíšené zboží / večerka", "Obchod nabízí základní potraviny a zboží denní potřeby v blízkosti bydliště.", "I malý obchod může webem informovat o otevírací době a akcích."],
+  "shop=supermarket": ["supermarket", "Prodejna potravin nabízí široký sortiment potravin a drogerie.", "Web s akčními letáky a rozvozem pomáhá udržet místní zákazníky."],
+  "shop=alcohol": ["vinotéka / prodejna nápojů", "Prodejna nabízí víno, destiláty a další nápoje, často s degustacemi a poradenstvím.", "Vinotéky mohou webem prodávat online a zvát na degustace."],
+  "shop=wine": ["vinotéka", "Vinotéka nabízí výběr vín, degustace a dárková balení.", "Web s e-shopem a kalendářem degustací je pro vinotéku přirozený zdroj tržeb."],
+  "shop=tattoo": ["tetovací studio", "Studio nabízí tetování a piercing, návrhy na míru a konzultace.", "Tetování se vybírá podle portfolia – web s galerií a rezervací konzultací je pro studio klíčový."],
+  "shop=massage": ["masáže", "Salon nabízí relaxační, sportovní a léčebné masáže.", "Masáže jsou typická služba pro online rezervace a dárkové poukazy."],
+  "shop=dry_cleaning": ["čistírna", "Čistírna nabízí chemické čištění oděvů, praní a žehlení.", "Web s ceníkem a svozem prádla může čistírně přinést firemní klienty."],
+  "shop=travel_agency": ["cestovní kancelář", "Cestovní agentura nabízí zájezdy, letenky a pojištění, s osobním poradenstvím.", "Cestovky soupeří s online portály – moderní web s nabídkou je pro ně nezbytný."],
+  "shop=photo": ["fotoateliér", "Ateliér nabízí fotografování, tisk fotografií a fotografické služby.", "Fotograf se prodává portfoliem – kvalitní web je pro něj povinnost."],
+  "shop=funeral_directors": ["pohřební služba", "Pohřební služba zajišťuje organizaci pohřbů, obřady a související služby.", "Pozůstalí hledají pohřební službu v těžké chvíli online – důstojný a přehledný web buduje důvěru."],
+  "shop=garden_centre": ["zahradnictví", "Zahradnictví nabízí rostliny, sazenice, substráty a potřeby pro zahradu, často i realizaci zahrad.", "Zahradnictví může webem prodávat sezónní nabídku a získávat zakázky na realizace."],
+  "shop=cosmetics": ["kosmetika / parfumerie", "Prodejna nabízí kosmetiku, parfémy a péči o tělo.", "Web s e-shopem pomáhá lokální prodejně konkurovat online řetězcům."],
+  "shop=sports": ["sportovní potřeby", "Prodejna nabízí sportovní vybavení, oblečení a servis.", "Web se sortimentem a servisem přivádí zákazníky z celého regionu."],
+  "shop=tyres": ["pneuservis", "Pneuservis nabízí prodej a přezouvání pneumatik, uskladnění a vyvažování kol.", "Sezónní přezouvání je ideální pro online rezervace termínů."],
+  "craft=plumber": ["instalatér", "Instalatér provádí rozvody vody a odpadů, opravy, montáže sanity a havarijní služby.", "Řemeslníky lidé hledají na Googlu – web s referencemi a poptávkovým formulářem generuje nové zakázky."],
+  "craft=electrician": ["elektrikář", "Elektrikář zajišťuje elektroinstalace, revize, opravy a montáže.", "Elektrikáři s moderním webem a referencemi získávají lépe placené zakázky."],
+  "craft=carpenter": ["truhlářství", "Truhlářství vyrábí nábytek na míru, kuchyně, dveře a další výrobky ze dřeva.", "Nábytek na míru se prodává fotkami realizací – web s galerií je pro truhláře nejlepší obchodník."],
+  "craft=roofer": ["pokrývačství", "Pokrývači provádějí nové střechy, rekonstrukce, klempířské práce a opravy.", "Web s realizacemi a poptávkou přivádí větší zakázky."],
+  "craft=painter": ["malíř / natěrač", "Firma nabízí malování interiérů, nátěry fasád a dekorativní techniky.", "Malíři se odlišují referencemi – web s fotkami před/po přesvědčí zákazníky."],
+  "craft=photographer": ["fotograf", "Fotograf nabízí focení svateb, portrétů, rodin či produktů.", "Pro fotografa je web portfoliem – zastaralý web přímo snižuje počet zakázek."],
+  "craft=tailor": ["krejčovství", "Krejčovství nabízí šití na míru, úpravy a opravy oděvů.", "Web s ukázkami a ceníkem pomáhá krejčovství získat nové klienty."],
+  "craft=shoemaker": ["obuvník", "Obuvník opravuje a vyrábí obuv.", "I malá dílna může webem získat zákazníky z okolí."],
+  "craft=builder": ["stavební firma", "Stavební firma realizuje novostavby, rekonstrukce a stavební práce.", "Stavební zakázky mají vysokou hodnotu – profesionální web s referencemi se rychle zaplatí."],
+  "craft=hvac": ["topenář / klimatizace", "Firma instaluje topení, tepelná čerpadla a klimatizace.", "Tepelná čerpadla a klimatizace jsou poptávané online – web s dotacemi a poptávkou je silný nástroj."],
+  "craft=gardener": ["zahradník", "Zahradník nabízí údržbu a realizaci zahrad.", "Web s realizacemi přivádí sezónní zakázky."],
+  "craft=brewery": ["pivovar", "Pivovar vaří vlastní pivo, často s restaurací a prodejem s sebou.", "Minipivovary mají silný příběh – web s e-shopem a exkurzemi ho umí prodat."],
+  "craft=winery": ["vinařství", "Vinařství pěstuje révu a vyrábí vlastní vína, často s degustacemi a ubytováním.", "Vinařství mohou webem prodávat víno online a nabízet degustace."],
+  "office=lawyer": ["advokátní kancelář", "Advokátní kancelář poskytuje právní služby, zastupování, sepis smluv a poradenství.", "U advokátů je web o důvěryhodnosti – zastaralá stránka podkopává dojem profesionality."],
+  "office=accountant": ["účetní kancelář", "Účetní kancelář vede účetnictví, daňovou evidenci, mzdy a zpracovává daňová přiznání.", "Účetní služby se hledají online – moderní web s ceníkem a poptávkou přivádí firemní klienty."],
+  "office=tax_advisor": ["daňový poradce", "Daňový poradce pomáhá s daňovými přiznáními, optimalizací a komunikací s úřady.", "Web s jasnou nabídkou služeb buduje důvěru a přináší poptávky."],
+  "office=estate_agent": ["realitní kancelář", "Realitní kancelář zprostředkovává prodej a pronájem nemovitostí.", "Realitky žijí z online prezentace nemovitostí – zastaralý web je pro ně vážný handicap."],
+  "office=insurance": ["pojišťovací agentura", "Agentura nabízí pojištění majetku, osob a vozidel a poradenství.", "Web s kalkulačkami a poptávkou pomáhá získat nové klienty."],
+  "office=financial_advisor": ["finanční poradce", "Finanční poradce pomáhá s hypotékami, investicemi a pojištěním.", "Důvěra je u financí vše – profesionální web ji buduje."],
+  "office=architect": ["architektonický ateliér", "Ateliér navrhuje stavby a interiéry a zajišťuje projektovou dokumentaci.", "Architekti se prodávají portfoliem – web je jejich hlavní výkladní skříň."],
+  "office=company": ["firma", "Firma poskytuje své služby a produkty zákazníkům v regionu.", "Moderní web je dnes základní vizitkou každé firmy."],
+  "office=it": ["IT firma", "Firma poskytuje IT služby, vývoj a správu systémů.", "IT firma se zastaralým webem působí nedůvěryhodně."],
+  "healthcare=physiotherapist": ["fyzioterapie", "Fyzioterapie nabízí rehabilitace, léčebné cvičení a terapii pohybového aparátu.", "Klienti fyzioterapie hledají online a rádi se objednávají přes rezervační systém."],
+  "healthcare=dentist": ["zubní ordinace", "Zubní ordinace poskytuje preventivní i léčebnou stomatologickou péči.", "Moderní web s online objednáním buduje důvěru pacientů."],
+  "tourism=hotel": ["hotel", "Hotel nabízí ubytování, často se snídaní, restaurací, wellness či konferenčními prostory.", "Hotely platí rezervačním portálům vysoké provize – vlastní web s přímou rezervací jim šetří peníze."],
+  "tourism=guest_house": ["penzion", "Penzion nabízí rodinné ubytování s osobním přístupem, často se snídaní.", "Penziony platí Bookingu až 15–18 % provize – vlastní web s přímou rezervací je jasná úspora."],
+  "tourism=apartment": ["apartmány", "Apartmány nabízejí samostatné ubytování s vybavenou kuchyní.", "Vlastní web s přímou rezervací šetří provize portálům."],
+  "tourism=motel": ["motel", "Motel nabízí ubytování u silnice pro projíždějící hosty.", "Web s přímou rezervací zvyšuje obsazenost."],
+  "tourism=camp_site": ["kemp", "Kemp nabízí místa pro stany, karavany a chatky.", "Kempy žijí ze sezónních rezervací – online rezervace jsou nezbytné."],
+  "tourism=hostel": ["hostel", "Hostel nabízí levné ubytování pro cestovatele.", "Vlastní web s rezervacemi šetří provize."],
+  "leisure=fitness_centre": ["fitness centrum", "Fitness centrum nabízí posilovnu, skupinové lekce a osobní trenéry.", "Fitka soutěží rozvrhem a online rezervacemi lekcí – moderní web je tu nutnost."],
+  "leisure=sports_centre": ["sportovní centrum", "Sportovní centrum nabízí pronájem sportovišť, kurzy a lekce.", "Online rezervace kurtů a lekcí jsou pro sportovní centra zásadní."],
+  "leisure=dance": ["taneční škola", "Taneční škola pořádá kurzy tance pro děti, dospělé i páry.", "Kurzy se plní přes online přihlášky – web s rozvrhem je klíčový."]
+};
+const GROUP_FALLBACK = {
+  amenity: ["služba", "Podnik poskytuje služby zákazníkům v okolí.", "Moderní web je dnes základní vizitkou každé provozovny."],
+  shop: ["obchod", "Obchod nabízí sortiment zboží a osobní přístup k zákazníkům z okolí.", "Web a e-shop pomáhají lokálním obchodům konkurovat online prodejcům."],
+  craft: ["řemeslná dílna", "Řemeslná firma nabízí zakázkovou výrobu, montáže a opravy.", "Řemeslníky lidé hledají na Googlu – web s referencemi přivádí zakázky."],
+  office: ["kancelář / firma", "Kancelář poskytuje odborné služby firmám i jednotlivcům.", "Profesionální web buduje důvěru a přivádí poptávky."],
+  healthcare: ["zdravotnické zařízení", "Zařízení poskytuje zdravotní péči pacientům z okolí.", "Pacienti hledají péči online – přehledný web s objednáním je nezbytný."],
+  tourism: ["ubytování / turismus", "Podnik slouží návštěvníkům a turistům.", "Vlastní web s přímou rezervací šetří provize portálům."],
+  leisure: ["volný čas / sport", "Podnik nabízí aktivity pro volný čas.", "Online rezervace a rozvrh jsou pro volnočasové podniky zásadní."]
+};
+const EXCLUDE = {
+  amenity: new Set(["parking","parking_space","parking_entrance","bench","waste_basket","recycling","place_of_worship","townhall","school","university","college","police","fire_station","post_box","telephone","toilets","drinking_water","fountain","shelter","bicycle_parking","atm","vending_machine","grave_yard","hunting_stand","charging_station","fuel","bank","post_office","library","community_centre","social_facility","courthouse","prison","public_bookcase","clock","waste_disposal","motorcycle_parking","bus_station","taxi","ferry_terminal","marketplace","childcare","hospital","nursing_home","embassy","feeding_place","water_point","bbq","loading_dock","compressed_air","car_sharing","bicycle_repair_station","kneipp_water_cure","letter_box","mortuary","crematorium","polling_station","dog_toilet"]),
+  leisure: new Set(["park","playground","pitch","garden","picnic_table","nature_reserve","track","common","slipway","swimming_area","dog_park","firepit","bleachers","outdoor_seating","schoolyard","bandstand","fishing","marina","stadium"]),
+  tourism: new Set(["information","viewpoint","artwork","attraction","picnic_site","museum","gallery","zoo","theme_park","wilderness_hut","alpine_hut","yes"]),
+  office: new Set(["government","diplomatic","religion","political_party","association","ngo","educational_institution","administrative","union","foundation","quango","research"]),
+  shop: new Set(["vacant","no","disused"]),
+  healthcare: new Set(["hospital"])
+};
+const GROUPS = ["amenity","shop","craft","office","healthcare","tourism","leisure"];
+
+function categoryOf(tags) {
+  for (const g of GROUPS) {
+    const v = tags[g]; if (!v) continue;
+    if (EXCLUDE[g]?.has(v)) return null;
+    const c = CAT[g + "=" + v];
+    if (c) return { key: g + "=" + v, label: c[0], text: c[1], pitch: c[2] };
+    const f = GROUP_FALLBACK[g];
+    return { key: g + "=" + v, label: f[0] + " (" + v.replace(/_/g, " ") + ")", text: f[1], pitch: f[2] };
+  }
+  return null;
+}
+
+/* ================================================================
+   MAPA
+   ================================================================ */
+const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([49.8, 15.5], 7);
+L.control.zoom({ position: "bottomright" }).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+  maxZoom: 20, subdomains: "abcd",
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+}).addTo(map);
+const cluster = L.markerClusterGroup({ maxClusterRadius: 45, showCoverageOnHover: false, spiderfyOnMaxZoom: true, disableClusteringAtZoom: 17 });
+map.addLayer(cluster);
+let meMarker = null, radiusCircle = null;
+
+function setCenter(lat, lon, fly = true) {
+  state.center = [lat, lon];
+  if (meMarker) map.removeLayer(meMarker);
+  meMarker = L.marker([lat, lon], { icon: L.divIcon({ className: "", html: '<div class="me"></div>', iconSize: [18, 18] }), zIndexOffset: 1000 }).addTo(map).bindTooltip("Střed hledání");
+  drawRadius(fly);
+  $("#scanBtn").disabled = false;
+}
+function drawRadius(fly = true) {
+  if (!state.center) return;
+  if (radiusCircle) map.removeLayer(radiusCircle);
+  radiusCircle = L.circle(state.center, { radius: state.radius * 1000, color: "#22d3ee", weight: 2, fillColor: "#22d3ee", fillOpacity: .06, dashArray: "6 6", interactive: false }).addTo(map);
+  if (fly) map.flyToBounds(radiusCircle.getBounds(), { padding: [30, 30], duration: .8 });
+}
+map.on("contextmenu", e => { setCenter(e.latlng.lat, e.latlng.lng); toast("Střed hledání přesunut sem."); });
+
+/* radius chips */
+function renderChips() {
+  $("#radiusChips").innerHTML = RADII.map(r => `<button class="chip ${r === state.radius ? "active" : ""}" data-r="${r}">do ${r} km</button>`).join("");
+}
+$("#radiusChips").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  state.radius = +b.dataset.r; settings.radius = state.radius; store.set("settings", settings);
+  renderChips(); drawRadius();
+});
+renderChips();
+
+/* ================================================================
+   POLOHA – nejdřív se zeptáme v modalu, teprve pak prohlížeč
+   ================================================================ */
+function askLocation() {
+  const msg = $("#startMsg");
+  if (!("geolocation" in navigator)) { msg.textContent = "Tvůj prohlížeč nepodporuje zjištění polohy – zadej místo ručně."; $("#manualBox").style.display = "block"; return; }
+  msg.innerHTML = '<span class="spin"></span> Čekám na povolení polohy v prohlížeči…';
+  navigator.geolocation.getCurrentPosition(pos => {
+    $("#startModal").classList.remove("open");
+    setCenter(pos.coords.latitude, pos.coords.longitude);
+    toast("Poloha nalezena. Vyber okruh a klikni na „Najít“.");
+  }, err => {
+    msg.textContent = err.code === 1 ? "Přístup k poloze byl zamítnut. Můžeš zadat místo ručně." : "Polohu se nepodařilo zjistit (" + err.message + "). Zkus to znovu nebo zadej místo ručně.";
+    $("#manualBox").style.display = "block";
+  }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 });
+}
+async function geocode() {
+  const q = $("#placeInput").value.trim(); if (!q) return;
+  $("#startMsg").innerHTML = '<span class="spin"></span> Hledám místo…';
+  try {
+    const r = await fetchTimeout("https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=cs&q=" + encodeURIComponent(q), {}, 15000);
+    const j = await r.json();
+    if (!j.length) { $("#startMsg").textContent = "Místo nenalezeno, zkus to jinak."; return; }
+    $("#startModal").classList.remove("open");
+    setCenter(+j[0].lat, +j[0].lon);
+    toast("Nastaveno: " + j[0].display_name.split(",").slice(0, 3).join(","));
+  } catch { $("#startMsg").textContent = "Hledání selhalo, zkontroluj připojení."; }
+}
+$("#allowLoc").onclick = askLocation;
+$("#manualLoc").onclick = () => { $("#manualBox").style.display = "block"; $("#placeInput").focus(); };
+$("#placeGo").onclick = geocode;
+$("#placeInput").addEventListener("keydown", e => { if (e.key === "Enter") geocode(); });
+$("#locBtn").onclick = () => { $("#startMsg").textContent = ""; $("#startModal").classList.add("open"); };
+
+/* ================================================================
+   OVERPASS – načtení podniků
+   ================================================================ */
+async function overpass(query, signal) {
+  let lastErr;
+  for (const ep of OVERPASS) {
+    try {
+      const r = await fetchTimeout(ep, { method: "POST", body: "data=" + encodeURIComponent(query), headers: { "Content-Type": "application/x-www-form-urlencoded" } }, 120000, signal);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return await r.json();
+    } catch (e) { if (signal?.aborted) throw e; lastErr = e; }
+  }
+  throw lastErr || new Error("Overpass nedostupný");
+}
+function buildQuery(lat, lon, rKm, noWeb) {
+  const a = `(around:${Math.round(rKm * 1000)},${lat.toFixed(6)},${lon.toFixed(6)})`;
+  const grp = `[~"^(amenity|shop|craft|office|healthcare|tourism|leisure)$"~"."]`;
+  let q = `[out:json][timeout:110];(
+  nwr${a}["name"]["website"];
+  nwr${a}["name"]["contact:website"];
+  nwr${a}["name"]["url"]${grp};
+  nwr${a}["name"]["contact:facebook"]${grp};`;
+  if (noWeb) q += `
+  nwr${a}["name"]${grp}[!"website"][!"contact:website"][!"url"];`;
+  q += `);out center tags;`;
+  return q;
+}
+
+/* ================================================================
+   ANALÝZA WEBU
+   ================================================================ */
+const SOCIAL = /(^|\.)(facebook\.com|fb\.com|fb\.me|instagram\.com|linktr\.ee|firmy\.cz|google\.com|goo\.gl|business\.site|g\.page|tripadvisor\.|booking\.com|zomato\.com|restu\.cz|foursquare\.com|mapy\.cz|youtube\.com|tiktok\.com|twitter\.com|x\.com|linkedin\.com)$/i;
+const FREE_HOSTS = /(\.webnode\.(cz|sk|com)|\.estranky\.(cz|sk)|\.wz\.cz|\.ic\.cz|\.sweb\.cz|\.mypage\.cz|\.webzdarma\.cz|\.g6\.cz|\.own\.cz|\.blog\.cz|\.websnadno\.cz|\.webmium\.com|\.wixsite\.com|\.wordpress\.com|\.blogspot\.|\.weebly\.com|\.jimdo(site|free)?\.com|\.webgarden\.(cz|com)|\.unas\.cz|\.php5\.cz|\.funsite\.cz|\.7x\.cz|\.xf\.cz|\.chytrak\.cz|\.euweb\.cz|\.wbs\.cz|\.rajce\.)/i;
+
+function proxies(url) {
+  const list = [];
+  if (settings.proxy) list.push({ u: settings.proxy + encodeURIComponent(url), raw: true, trusted: true });
+  list.push({ u: "https://api.allorigins.win/get?url=" + encodeURIComponent(url), json: true });
+  list.push({ u: "https://corsproxy.io/?url=" + encodeURIComponent(url), raw: true });
+  list.push({ u: "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(url), raw: true });
+  return list;
+}
+/* vrací {ok, html, code} nebo {ok:false, code, dead} */
+async function fetchSite(url, signal) {
+  let deadVotes = 0, tried = 0;
+  for (const p of proxies(url)) {
+    if (signal?.aborted) throw new DOMException("aborted", "AbortError");
+    tried++;
+    try {
+      const r = await fetchTimeout(p.u, {}, 16000, signal);
+      if (p.json) {
+        if (!r.ok) continue;
+        const j = await r.json();
+        const code = j?.status?.http_code;
+        if (j.contents && (!code || code < 400)) return { ok: true, html: String(j.contents).slice(0, 800000), code: code || 200 };
+        if (code >= 400 || code === 0 || j?.status?.error) deadVotes++;
+        continue;
+      }
+      if (r.ok) {
+        const html = (await r.text()).slice(0, 800000);
+        if (html && html.length > 30) return { ok: true, html, code: r.status };
+      } else if (p.trusted && r.status !== 429) return { ok: false, dead: true, tried };
+      else if (r.status >= 400 && r.status !== 403 && r.status !== 429) deadVotes++;
+    } catch (e) { if (signal?.aborted) throw e; }
+  }
+  return { ok: false, dead: deadVotes >= 2, tried };
+}
+
+function analyzeHtml(html, url) {
+  const minus = [], plus = [], facts = {};
+  let score = 0;
+  const add = (pts, text) => { score += pts; minus.push(text); };
+  const low = html.toLowerCase();
+  let doc;
+  try { doc = new DOMParser().parseFromString(html, "text/html"); } catch { doc = null; }
+  const q = s => doc ? doc.querySelector(s) : null;
+  const qa = s => doc ? [...doc.querySelectorAll(s)] : [];
+
+  facts.title = (q("title")?.textContent || "").trim().replace(/\s+/g, " ").slice(0, 160);
+  facts.metaDesc = (q('meta[name="description" i]')?.getAttribute("content") || q('meta[property="og:description"]')?.getAttribute("content") || "").trim().slice(0, 400);
+  facts.headings = qa("h1,h2").map(h => h.textContent.trim().replace(/\s+/g, " ")).filter(t => t && t.length < 120).slice(0, 8);
+  qa("script,style,noscript,svg").forEach(n => n.remove());
+  const text = (doc?.body?.textContent || "").replace(/\s+/g, " ").trim();
+  facts.text = text.slice(0, 2500);
+  facts.textLen = text.length;
+  facts.emails = [...new Set((html.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []).filter(e => !/\.(png|jpe?g|gif|webp|svg)$/i.test(e) && !/sentry|wixpress|example|domain\.com/i.test(e)))].slice(0, 3);
+  facts.phones = [...new Set(qa('a[href^="tel:"]').map(a => a.getAttribute("href").slice(4).trim()))].slice(0, 3);
+
+  /* --- parkovaná / nefunkční / ve výstavbě --- */
+  if (/(domain (is )?for sale|doména je na prodej|this domain (may be|is) for sale|koupit tuto doménu|parkingcrew|sedoparking|bodis\.com|domain parking|tato doména je (volná|zaregistrována)|hostingová služba je pozastavena|account (has been )?suspended|webhosting.{0,20}(expiroval|pozastaven))/i.test(low)) {
+    add(60, "Doména je zaparkovaná, na prodej nebo je hosting pozastavený – web fakticky nefunguje.");
+    facts.parked = true;
+  }
+  if (/(stránka se připravuje|web se připravuje|připravujeme nový web|ve výstavbě|under construction|coming soon|site is under maintenance|stránky jsou ve výstavbě|pracujeme na nov[ée]m webu)/i.test(text) && facts.textLen < 3000) {
+    add(35, "Web je „ve výstavbě“ nebo „připravujeme“ – zákazník nenajde žádné informace.");
+  }
+  if (facts.textLen < 250 && !facts.parked && !/wix|squarespace|webflow|__next|ng-version|data-reactroot|id="app"|id="root"/i.test(low)) {
+    add(15, "Na webu je minimum obsahu (téměř žádný text).");
+  }
+
+  /* --- mobil --- */
+  const vp = q('meta[name="viewport" i]');
+  if (!vp) add(22, "Web není přizpůsobený pro mobily (chybí meta viewport) – na telefonu se zobrazuje zmenšený desktop.");
+  else plus.push("Web má nastavené zobrazení pro mobilní zařízení.");
+
+  /* --- stáří: copyright --- */
+  const years = [];
+  const reC = /(?:©|&copy;|&#169;|copyright|\(c\))\s*(?:[^0-9]{0,40})?((?:19|20)\d{2})(?:\s*[-–—]\s*((?:19|20)\d{2}))?/gi;
+  let m; while ((m = reC.exec(html)) && years.length < 20) { years.push(+m[1]); if (m[2]) years.push(+m[2]); }
+  const reU = /(?:aktualizováno|aktualizace|last updated|poslední úprava)[^0-9]{0,20}(?:\d{1,2}\.\s*\d{1,2}\.\s*)?((?:19|20)\d{2})/gi;
+  while ((m = reU.exec(text)) && years.length < 30) years.push(+m[1]);
+  const valid = years.filter(y => y >= 1995 && y <= YEAR);
+  if (valid.length) {
+    const y = Math.max(...valid); facts.lastYear = y;
+    const age = YEAR - y;
+    if (age >= 2) add(Math.min(28, 6 + age * 3), `Poslední datum na webu je z roku ${y} – web nebyl ${age} let aktualizován.`);
+    else plus.push(`Web vypadá udržovaně (datum ${y}).`);
+  }
+
+  /* --- zastaralé technologie --- */
+  const dt = html.slice(0, 400).toLowerCase();
+  if (/<!doctype html public "-\/\/w3c\/\/dtd (html 4|xhtml 1)/i.test(dt) || /<!doctype html public "-\/\/w3c\/\/dtd html 3/i.test(dt)) add(12, "Zastaralý typ dokumentu (HTML 4 / XHTML) – kód z doby před rokem 2010.");
+  else if (!/<!doctype html>/i.test(dt) && !/<!doctype/i.test(dt)) add(4, "Chybí deklarace dokumentu (doctype).");
+  if (/<frameset|<frame\s/i.test(html)) add(18, "Web používá rámy (frames) – technologie z 90. let, špatně pro Google i mobily.");
+  if (/\.swf\b|shockwave-flash|application\/x-shockwave/i.test(html)) add(18, "Web obsahuje Flash, který už žádný prohlížeč nepodporuje.");
+  const oldTags = (html.match(/<(font|center|marquee|blink)\b/gi) || []).length;
+  if (oldTags > 0) add(Math.min(12, 4 + oldTags), `Zastaralé HTML značky (<font>, <center>, <marquee>) – ${oldTags}×.`);
+  const layoutTables = qa("table").filter(t => t.getAttribute("width") || t.getAttribute("cellpadding") || t.getAttribute("bgcolor") || t.getAttribute("border")).length;
+  if (layoutTables >= 3) add(10, "Rozložení stránky je postavené na tabulkách – typický znak webu z doby před 15+ lety.");
+  if (/<(?:img|a)[^>]+(?:onmouseover|onmouseout)=["'][^"']*(?:MM_swapImage|MM_preloadImages)/i.test(html) || /MM_swapImage|MM_preloadImages/.test(html)) add(10, "Kód obsahuje skripty z Dreamweaveru (MM_swapImage) – starý web z generátoru.");
+  const gen = (q('meta[name="generator" i]')?.getAttribute("content") || "").trim();
+  facts.generator = gen;
+  if (/frontpage|dreamweaver|iweb|publisher|word|openoffice|libreoffice|zeta producer|web ?page maker|namo/i.test(gen)) add(18, `Web byl vytvořen v zastaralém programu (${gen}).`);
+  const wp = gen.match(/wordpress\s*(\d+)\.(\d+)/i);
+  if (wp) { const v = +wp[1]; if (v < 5) add(14, `Běží na velmi staré verzi WordPressu (${wp[1]}.${wp[2]}) – bezpečnostní riziko.`); else if (v < 6) add(7, `Starší verze WordPressu (${wp[1]}.${wp[2]}).`); else plus.push("Běží na aktuálnějším WordPressu."); }
+  const jm = gen.match(/joomla!?\s*(\d+(?:\.\d+)?)/i);
+  if (jm && +jm[1] < 4) add(12, `Zastaralý redakční systém Joomla ${jm[1]}.`);
+  if (/drupal\s*[5-7]\b/i.test(gen)) add(12, `Zastaralý Drupal (${gen}).`);
+  const jq = html.match(/jquery[.-]?(1\.\d+(?:\.\d+)?)(?:\.min)?\.js/i) || html.match(/jquery(?:\.min)?\.js\?ver=(1\.\d+(?:\.\d+)?)/i);
+  if (jq) add(6, `Používá starou knihovnu jQuery ${jq[1]}.`);
+  if (/<object[^>]+classid|<embed[^>]+\.(wmv|avi|mid)/i.test(html)) add(6, "Obsahuje zastaralé přehrávače médií (object/embed).");
+  if (/<bgsound|\.mid["']/i.test(html)) add(8, "Stránka obsahuje hudbu v pozadí (MIDI) – relikt 90. let.");
+  if (/toplist\.cz|navrcholu\.cz|počítadlo návštěv/i.test(low)) add(5, "Na webu je staré počítadlo návštěv (TopList / NaVrcholu).");
+  if (/kniha návštěv|guestbook|návštěvní kniha/i.test(text)) add(5, "Web má „knihu návštěv“ – typický prvek webů z let 2000–2010.");
+  const inlineStyles = (html.match(/\sstyle=["']/gi) || []).length;
+  if (inlineStyles > 120) add(4, "Velké množství inline stylů – kód je těžko udržovatelný.");
+
+  /* --- builder / hosting --- */
+  const host = hostOf(url);
+  if (FREE_HOSTS.test("." + host)) add(15, `Web běží na bezplatné subdoméně (${host}) – nepůsobí profesionálně a omezuje SEO.`);
+  facts.builder = /wixstatic|parastorage|wix\.com/i.test(low) ? "Wix" : /webnode/i.test(low) ? "Webnode" : /squarespace/i.test(low) ? "Squarespace" : /shoptet/i.test(low) ? "Shoptet" : /estranky/i.test(low) ? "eStránky" : /wp-content|wordpress/i.test(low) ? "WordPress" : /joomla/i.test(low) ? "Joomla" : /webflow/i.test(low) ? "Webflow" : /__next|_next\/static/i.test(low) ? "Next.js" : "";
+  if (facts.builder === "Webnode" || facts.builder === "eStránky") add(8, `Web je poskládaný v šablonovém systému ${facts.builder} – vypadá generičky a má omezené možnosti.`);
+
+  /* --- SEO / sdílení --- */
+  if (!facts.title || facts.title.length < 4) add(7, "Stránka nemá titulek (title) – špatné pro vyhledávače.");
+  else if (/^(home|úvod|index|untitled|nový web|domovská stránka|hlavní strana)$/i.test(facts.title)) add(5, `Titulek stránky je obecný („${facts.title}“) – nevyužitý potenciál pro SEO.`);
+  if (!q('meta[name="description" i]')) add(5, "Chybí meta popis pro Google – ve výsledcích hledání se zobrazí náhodný text.");
+  else plus.push("Má vyplněný popis pro vyhledávače.");
+  if (!q('meta[property="og:title"],meta[property="og:image"]')) add(3, "Chybí Open Graph – odkaz sdílený na Facebooku nebo WhatsAppu nemá náhled.");
+  else plus.push("Odkazy se hezky sdílí na sociálních sítích (Open Graph).");
+  if (!q('link[rel~="icon" i],link[rel="shortcut icon" i],link[rel="apple-touch-icon" i]')) add(3, "Chybí ikona webu (favicon).");
+  if (/application\/ld\+json/i.test(html)) plus.push("Obsahuje strukturovaná data pro Google (Schema.org).");
+  const semantic = qa("header,nav,main,footer,section,article").length;
+  if (!semantic && qa("div").length > 10) add(4, "Nepoužívá moderní HTML5 strukturu (header/nav/main/footer).");
+  const imgs = qa("img"); const noAlt = imgs.filter(i => !i.getAttribute("alt")).length;
+  if (imgs.length >= 5 && noAlt / imgs.length > .5) add(3, `${noAlt} z ${imgs.length} obrázků nemá popisek (alt) – horší přístupnost i SEO.`);
+  if (/http:\/\/[^"']+\.(css|js)["']/i.test(html) && url.startsWith("https")) add(4, "Web načítá soubory přes nezabezpečené http (mixed content).");
+
+  /* --- pozitiva --- */
+  if (/@media[^{]*\(\s*(max|min)-width/i.test(html) || /bootstrap|tailwind|foundation\.min|bulma/i.test(low)) plus.push("Používá responzivní rozvržení.");
+  if (/<form[\s\S]{0,3000}?(textarea|type=["']email)/i.test(html)) plus.push("Má kontaktní nebo poptávkový formulář.");
+  if (/reservio|bookio|rezervace|objednat se|online rezervac|booking|objednávkov/i.test(low)) plus.push("Nabízí online rezervaci nebo objednání.");
+  if (/košík|do košíku|add to cart|shoptet|woocommerce|eshop|e-shop/i.test(low)) plus.push("Má e-shop nebo online prodej.");
+  if (/googletagmanager|gtag\(|google-analytics|fbq\(|facebook\.net\/.*fbevents/i.test(low)) plus.push("Měří návštěvnost (Google Analytics / pixel).");
+  if (/cookie ?(lišt|consent|bar)|cookiebot|cookieyes|cookie-law|cc-window|cookieconsent/i.test(low)) plus.push("Má cookie lištu (řeší GDPR).");
+  if (/instagram\.com\/|facebook\.com\//i.test(low)) plus.push("Odkazuje na sociální sítě.");
+  if (/gmap|google\.com\/maps|mapy\.cz|api\.mapy/i.test(low)) plus.push("Obsahuje mapu nebo odkaz na navigaci.");
+  if (facts.builder && /Next\.js|Webflow|Squarespace|Shoptet/.test(facts.builder)) plus.push(`Postaveno na moderní platformě (${facts.builder}).`);
+  if (facts.textLen > 3000) plus.push("Web obsahuje dostatek textu a informací.");
+
+  return { score: Math.max(0, Math.min(100, Math.round(score))), minus, plus: [...new Set(plus)], facts };
+}
+
+async function analyzePlace(p, signal) {
+  const cacheKey = "cache:" + p.url;
+  const cached = store.get(cacheKey);
+  if (cached && Date.now() - cached.t < 7 * 864e5) { Object.assign(p, cached.r); return; }
+
+  const host = hostOf(p.url);
+  if (SOCIAL.test(host)) {
+    p.kind = "social"; p.score = 75;
+    p.minus = [`Místo vlastního webu má jen profil na ${host} – nemá vlastní prezentaci, kterou by ovládal.`, "Bez vlastní domény a webu je podnik závislý na algoritmech sociálních sítí a Google je nezobrazí jako plnohodnotný výsledek."];
+    p.plus = ["Je aktivní alespoň na sociálních sítích / katalozích – má tedy zájem o online prezentaci."];
+    p.facts = {};
+  } else {
+    let url = p.url, res, httpsOk = true;
+    if (url.startsWith("http://")) {
+      const httpsUrl = "https://" + url.slice(7);
+      res = await fetchSite(httpsUrl, signal);
+      if (res.ok) url = httpsUrl; else { httpsOk = false; res = await fetchSite(url, signal); }
+    } else {
+      res = await fetchSite(url, signal);
+      if (!res.ok) { const r2 = await fetchSite("http://" + url.replace(/^https:\/\//, ""), signal); if (r2.ok) { res = r2; httpsOk = false; url = "http://" + url.replace(/^https:\/\//, ""); } }
+    }
+    if (res.ok) {
+      const a = analyzeHtml(res.html, url);
+      if (!httpsOk) { a.score = Math.min(100, a.score + 15); a.minus.unshift("Web nemá funkční HTTPS – prohlížeče ho označují jako „Nezabezpečené“."); }
+      else a.plus.unshift("Web má zabezpečené připojení HTTPS.");
+      Object.assign(p, { kind: "web", finalUrl: url }, a);
+    } else if (res.dead) {
+      Object.assign(p, { kind: "dead", score: 80, minus: ["Web nejde načíst – server vrací chybu nebo doména nefunguje.", "Zákazník, který klikne na odkaz v Mapách Google či Firmy.cz, skončí na chybové stránce."], plus: [], facts: {} });
+    } else {
+      Object.assign(p, { kind: "unknown", score: null, minus: ["Web se nepodařilo automaticky načíst (blokace nebo výpadek proxy) – zkontroluj ho ručně."], plus: [], facts: {} });
+    }
+  }
+  store.set(cacheKey, { t: Date.now(), r: { kind: p.kind, score: p.score, minus: p.minus, plus: p.plus, facts: p.facts, finalUrl: p.finalUrl } });
+}
+
+/* ================================================================
+   SKENOVÁNÍ
+   ================================================================ */
+function tagsToPlace(el) {
+  const t = el.tags || {};
+  const lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon;
+  if (lat == null || !t.name) return null;
+  const cat = categoryOf(t); if (!cat) return null;
+  if (!settings.chains && (t["brand:wikidata"] || t["operator:wikidata"])) return null;
+  let rawUrl = t.website || t["contact:website"] || t.url || "";
+  if (!rawUrl) { const fb = t["contact:facebook"] || t.facebook || ""; rawUrl = fb && !/[/.]/.test(fb) ? "https://facebook.com/" + fb : fb; }
+  const url = rawUrl ? normUrl(rawUrl) : null;
+  const addr = [[t["addr:street"] || t["addr:place"], t["addr:housenumber"] || t["addr:conscriptionnumber"]].filter(Boolean).join(" "), t["addr:city"] || t["addr:suburb"]].filter(Boolean).join(", ");
+  return {
+    id: el.type + "/" + el.id, name: t.name, tags: t, lat, lon, cat, url, addr,
+    dist: haversine(state.center, [lat, lon]),
+    phone: t.phone || t["contact:phone"] || "", email: t.email || t["contact:email"] || "",
+    hours: t.opening_hours || "", kind: url ? "pending" : "noweb", score: url ? null : 65
+  };
+}
+
+async function scan() {
+  if (!state.center || state.running) return;
+  state.running = true; state.abort = new AbortController();
+  const signal = state.abort.signal;
+  cluster.clearLayers(); state.places.clear(); closePanel();
+  $("#scanBtn").disabled = true;
+  showProgress(`Hledám podniky do ${state.radius} km…`, 3);
+  try {
+    const data = await overpass(buildQuery(state.center[0], state.center[1], state.radius, settings.noWeb), signal);
+    let list = (data.elements || []).map(tagsToPlace).filter(Boolean).filter(p => p.dist <= state.radius + .05);
+    // deduplikace dle id a jména+polohy
+    const seen = new Set();
+    list = list.filter(p => { const k = p.name.toLowerCase() + "|" + p.lat.toFixed(3) + p.lon.toFixed(3); if (seen.has(k) || seen.has(p.id)) return false; seen.add(k); seen.add(p.id); return true; });
+    // domény sdílené 4+ pobočkami = řetězec
+    const domCount = {};
+    list.forEach(p => { if (p.url) { const h = hostOf(p.url); if (!SOCIAL.test(h)) domCount[h] = (domCount[h] || 0) + 1; } });
+    if (!settings.chains) list = list.filter(p => !p.url || SOCIAL.test(hostOf(p.url)) || domCount[hostOf(p.url)] < 4);
+    list.sort((a, b) => a.dist - b.dist);
+    list.forEach(p => state.places.set(p.id, p));
+
+    const withWeb = list.filter(p => p.url);
+    const noWeb = list.filter(p => !p.url);
+    noWeb.forEach(p => { p.minus = ["Podnik nemá žádný web – v OpenStreetMap ani v katalozích u něj není uveden odkaz.", "Zákazníci, kteří ho hledají na internetu, nenajdou nabídku, ceník ani fotky."]; p.plus = ["Podnik je aktivní a zanesený v mapách – je tedy vidět, jen nemá kam zákazníky poslat."]; p.facts = {}; addMarker(p); });
+
+    if (!list.length) { showProgress("V tomto okruhu jsem nenašel žádné podniky. Zkus větší vzdálenost.", 100, true); setTimeout(hideProgress, 4000); return; }
+
+    // analýza webů – sdílené domény analyzujeme jednou
+    const byUrl = new Map();
+    withWeb.forEach(p => { if (!byUrl.has(p.url)) byUrl.set(p.url, []); byUrl.get(p.url).push(p); });
+    const urls = [...byUrl.keys()];
+    let done = 0;
+    const total = urls.length;
+    const update = () => showProgress(`Analyzuji weby: ${done} / ${total} &nbsp;·&nbsp; podniků celkem ${list.length}${noWeb.length ? ` (bez webu ${noWeb.length})` : ""}`, total ? 5 + 95 * done / total : 100);
+    update();
+    let i = 0;
+    const worker = async () => {
+      while (i < urls.length && !signal.aborted) {
+        const u = urls[i++];
+        const group = byUrl.get(u);
+        try {
+          await analyzePlace(group[0], signal);
+          for (const p of group.slice(1)) Object.assign(p, { kind: group[0].kind, score: group[0].score, minus: group[0].minus, plus: group[0].plus, facts: group[0].facts, finalUrl: group[0].finalUrl });
+        } catch (e) { if (signal.aborted) return; group.forEach(p => { p.kind = "unknown"; p.minus = ["Analýza selhala."]; p.plus = []; p.facts = {}; }); }
+        group.forEach(addMarker);
+        done++; update(); updateStats();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(10, +settings.conc || 5)) }, worker));
+    if (signal.aborted) showProgress(`Zastaveno. Analyzováno ${done} z ${total} webů.`, 100, true);
+    else showProgress(`Hotovo! Prošel jsem ${list.length} ${pl(list.length, "podnik", "podniky", "podniků")} a ${total} ${pl(total, "web", "weby", "webů")}.`, 100, true);
+    setTimeout(hideProgress, 5000);
+  } catch (e) {
+    if (!signal.aborted) { showProgress("Chyba při hledání: " + esc(e.message) + ". Zkus to za chvíli znovu nebo zmenši okruh.", 100, true); setTimeout(hideProgress, 7000); }
+    else hideProgress();
+  } finally {
+    state.running = false; $("#scanBtn").disabled = false; updateStats();
+  }
+}
+function showProgress(html, pct, final) { $("#progress").style.display = "block"; $("#progText").innerHTML = html; $("#progBar").style.width = pct + "%"; $("#stopBtn").style.display = state.running && !final ? "" : "none"; }
+function hideProgress() { if (!state.running) $("#progress").style.display = "none"; }
+$("#scanBtn").onclick = scan;
+$("#stopBtn").onclick = () => state.abort?.abort();
+
+/* ================================================================
+   MARKERY + FILTR
+   ================================================================ */
+function visible(p) {
+  if (p.kind === "pending") return false;
+  if (p.kind === "noweb") return settings.noWeb;
+  if (p.kind === "unknown") return state.threshold <= 0;
+  return (p.score ?? 0) >= state.threshold;
+}
+function addMarker(p) {
+  if (p.marker) { cluster.removeLayer(p.marker); p.marker = null; }
+  if (!visible(p)) return;
+  const label = p.kind === "noweb" ? "∅" : p.kind === "social" ? "f" : p.kind === "unknown" ? "?" : p.score;
+  const bg = p.kind === "unknown" ? "#64748b" : scoreHex(p.score ?? 0, p.kind);
+  const icon = L.divIcon({ className: "", html: `<div class="pin" style="background:${bg}"><span>${label}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] });
+  p.marker = L.marker([p.lat, p.lon], { icon, title: p.name });
+  p.marker.bindTooltip(`<b>${esc(p.name)}</b><br>${esc(p.cat.label)}`, { direction: "top", offset: [0, -28] });
+  p.marker.on("click", () => openPanel(p));
+  cluster.addLayer(p.marker);
+}
+function rerenderMarkers() { cluster.clearLayers(); state.places.forEach(p => { p.marker = null; addMarker(p); }); updateStats(); }
+function updateStats() {
+  const all = [...state.places.values()];
+  if (!all.length) { $("#stats").textContent = "Zatím nic nenalezeno."; return; }
+  const shown = all.filter(visible).length;
+  const bad = all.filter(p => p.kind !== "noweb" && p.kind !== "pending" && (p.score ?? 0) >= 50).length;
+  const nw = all.filter(p => p.kind === "noweb").length;
+  $("#stats").innerHTML = `Na mapě: <b>${shown}</b> · podniků: ${all.length}<br>Silní kandidáti (50+): <b>${bad}</b>${settings.noWeb ? ` · bez webu: ${nw}` : ""}`;
+}
+$("#thr").value = state.threshold; $("#thrVal").textContent = state.threshold;
+$("#thr").addEventListener("input", e => { state.threshold = +e.target.value; $("#thrVal").textContent = state.threshold; store.set("thr", state.threshold); rerenderMarkers(); });
+$("#legendToggle").onclick = () => $("#legend").classList.toggle("collapsed");
+if (matchMedia("(max-width:700px)").matches) $("#legend").classList.add("collapsed");
+
+/* ================================================================
+   POPIS FIRMY (150–250 slov) – automatický generátor
+   ================================================================ */
+const DAYS = { Mo: "po", Tu: "út", We: "st", Th: "čt", Fr: "pá", Sa: "so", Su: "ne", PH: "svátky", off: "zavřeno" };
+function czHours(h) { return h.replace(/\b(Mo|Tu|We|Th|Fr|Sa|Su|PH|off)\b/g, d => DAYS[d]).replace(/;\s*/g, "; "); }
+function cuisineCz(c) {
+  const M = { czech: "česká", italian: "italská", pizza: "pizza", burger: "burgery", asian: "asijská", chinese: "čínská", vietnamese: "vietnamská", indian: "indická", mexican: "mexická", kebab: "kebab", regional: "regionální", international: "mezinárodní", coffee_shop: "kávová", sushi: "sushi", steak_house: "steaky", greek: "řecká", french: "francouzská", thai: "thajská", japanese: "japonská", seafood: "ryby a mořské plody", vegetarian: "vegetariánská", vegan: "veganská", sandwich: "sendviče", chicken: "kuřecí", ice_cream: "zmrzlina", cake: "dorty", bagel: "bagely", breakfast: "snídaně", fish: "ryby", ukrainian: "ukrajinská", slovak: "slovenská", balkan: "balkánská", turkish: "turecká" };
+  return c.split(/[;,]/).map(x => M[x.trim()] || x.trim().replace(/_/g, " ")).join(", ");
+}
+function buildDescription(p) {
+  const t = p.tags, f = p.facts || {};
+  const where = p.addr ? `na adrese ${p.addr}` : "v okolí hledaného místa";
+  const core = [], extra = [];
+  core.push(`${p.name} je ${p.cat.label} se sídlem ${where}, přibližně ${p.dist < 1 ? Math.round(p.dist * 1000) + " metrů" : p.dist.toFixed(1).replace(".", ",") + " km"} od místa hledání.`);
+  core.push(p.cat.text);
+  if (t.cuisine) core.push(`Kuchyně podniku je zaměřena na: ${cuisineCz(t.cuisine)}.`);
+  if (t.description) core.push(`V mapových podkladech je podnik popsán takto: „${t.description.slice(0, 220)}“.`);
+  if (f.metaDesc) core.push(`Na svém webu se prezentuje slovy: „${f.metaDesc.slice(0, 260)}“.`);
+  else if (f.title && f.title.length > 6) core.push(`Titulek jeho webové stránky zní „${f.title}“.`);
+  if (f.headings?.length) core.push(`Mezi hlavní témata webu patří: ${f.headings.slice(0, 5).map(h => "„" + h + "“").join(", ")}.`);
+  const svc = [];
+  if (t.delivery === "yes") svc.push("rozvoz");
+  if (t.takeaway === "yes") svc.push("prodej s sebou");
+  if (t.outdoor_seating === "yes") svc.push("venkovní posezení");
+  if (t.wheelchair === "yes") svc.push("bezbariérový přístup");
+  if (t["payment:cards"] === "yes" || t["payment:credit_cards"] === "yes") svc.push("platbu kartou");
+  if (t.internet_access && t.internet_access !== "no") svc.push("Wi-Fi pro zákazníky");
+  if (t.reservation === "yes" || t.reservation === "recommended") svc.push("rezervace");
+  if (svc.length) core.push(`Podle dostupných údajů nabízí ${svc.join(", ")}.`);
+  if (p.hours) core.push(`Otevírací doba je uvedena jako ${czHours(p.hours)}.`);
+  const ph = p.phone || f.phones?.[0];
+  if (ph || p.email || f.emails?.length) core.push(`Firmu lze kontaktovat ${[ph && "telefonicky na " + ph, (p.email || f.emails?.[0]) && "e-mailem na " + (p.email || f.emails[0])].filter(Boolean).join(" nebo ")}.`);
+
+  // stav webu
+  if (p.kind === "noweb") core.push("Podnik podle dostupných dat nemá vlastní webové stránky, takže zákazníci, kteří ho hledají online, nemají kde zjistit nabídku, ceny ani fotografie.");
+  else if (p.kind === "social") core.push(`Místo vlastního webu odkazuje pouze na profil ${hostOf(p.url)}, což působí provizorně a neumožňuje plnohodnotnou prezentaci služeb.`);
+  else if (p.kind === "dead") core.push(`Webová adresa ${hostOf(p.url)} je v současnosti nefunkční, takže zájemci, kteří na ni kliknou, odcházejí s nepořízenou.`);
+  else if (p.kind === "web") {
+    const bits = [];
+    if (f.builder) bits.push(`postavený na platformě ${f.builder}`);
+    if (f.lastYear) bits.push(`s posledním datem z roku ${f.lastYear}`);
+    core.push(`Firma provozuje web ${hostOf(p.finalUrl || p.url)}${bits.length ? ", " + bits.join(" a ") : ""}. ${p.minus.length ? `Automatická kontrola na něm našla ${p.minus.length} ${pl(p.minus.length, "slabinu", "slabiny", "slabin")}, zašlost webu je ohodnocena na ${p.score} ze 100 bodů.` : "Automatická kontrola na něm nenašla zásadní slabiny."}`);
+  } else core.push(`Firma uvádí web ${hostOf(p.url)}, který se však nepodařilo automaticky načíst.`);
+  core.push(p.cat.pitch);
+
+  extra.push("Jde o lokální podnik, který stojí na osobním přístupu a zákaznících z blízkého okolí, pro něž je internet dnes prvním místem, kde si služby ověřují.");
+  extra.push("Většina lidí dnes před první návštěvou provozovny nejdříve hledá informace na mobilu – otevírací dobu, ceny, fotky a recenze.");
+  extra.push("Kvalitní webová prezentace by podniku pomohla lépe se zobrazovat ve vyhledávání Google i Seznam a odlišit se od konkurence v okolí.");
+  extra.push("Pro firmu podobné velikosti je nový web jednorázová investice, která se při správném nastavení vrátí už několika novými zákazníky.");
+  extra.push("Právě menší lokální firmy bývají otevřené osobní nabídce, protože web často řešily naposledy před mnoha lety a nemají na něj vlastního člověka.");
+
+  let out = core.slice();
+  let k = 0;
+  while (words(out.join(" ")) < 160 && k < extra.length) out.splice(out.length - 1, 0, extra[k++]);
+  // ořez na max 250 slov – odebíráme méně důležité věty od konce (kromě posledních dvou)
+  const removable = () => out.findIndex((s, i) => i > 1 && i < out.length - 2 && (s.startsWith("Mezi hlavní") || s.startsWith("Podle dostupných") || s.startsWith("V mapových") || s.startsWith("Otevírací") || s.startsWith("Kontaktovat") || extra.includes(s)));
+  while (words(out.join(" ")) > 250) { const r = removable(); if (r < 0) break; out.splice(r, 1); }
+  let txt = out.join(" ");
+  if (words(txt) > 250) txt = txt.split(/\s+/).slice(0, 248).join(" ").replace(/[,;:]?$/, "") + "…";
+  // odstavce po cca 3 větách
+  const sent = txt.split(/(?<=[.!?…]["“”]?)\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ„])/);
+  const paras = []; for (let i = 0; i < sent.length; i += 3) paras.push(sent.slice(i, i + 3).join(" ").trim());
+  return paras.join("\n\n");
+}
+function buildWhy(p) {
+  const why = [];
+  const s = p.score ?? 0;
+  if (p.kind === "noweb") why.push("Nemá vůbec žádný web – nabídka nového webu je pro něj jasná a snadno pochopitelná přidaná hodnota, nic se nepředělává.");
+  if (p.kind === "social") why.push("Spoléhá jen na sociální sítě – už teď investuje čas do online prezentace, jen nemá vlastní web. Je připravený na další krok.");
+  if (p.kind === "dead") why.push("Web mu nefunguje, pravděpodobně o tom ani neví – upozornění na problém je skvělý úvod ke schůzce a téměř jistá zakázka.");
+  if (p.kind === "web" && s >= 70) why.push("Web je v kritickém stavu – rozdíl před a po bude obrovský a snadno se ukáže na ukázce/mockupu.");
+  else if (p.kind === "web" && s >= 50) why.push("Web je výrazně zastaralý – zákazníky spíš odrazuje, než přivádí. Modernizace má jasný a viditelný přínos.");
+  else if (p.kind === "web" && s >= 30) why.push("Web potřebuje osvěžení – menší zakázka (redesign, mobilní verze, SEO), se kterou se dá rychle začít.");
+  if (p.minus?.some(m => /mobil/i.test(m))) why.push("Na mobilu, odkud přichází většina návštěv, web nefunguje dobře – přichází tak o zákazníky každý den.");
+  if (p.minus?.some(m => /HTTPS/.test(m))) why.push("Prohlížeč web označuje jako „Nezabezpečený“ – to snižuje důvěru a Google takové weby penalizuje.");
+  if (p.facts?.lastYear && YEAR - p.facts.lastYear >= 3) why.push(`Web nikdo neaktualizoval od roku ${p.facts.lastYear} – můžeš nabídnout i pravidelnou správu (měsíční příjem).`);
+  if (/Online rezerv|e-shop/i.test((p.plus || []).join(" ")) === false && /restaurace|kadeř|kosmet|salon|ordinace|autoservis|hotel|penzion|fitness|masáž|fyzio|autoškola|tetov/i.test(p.cat.label)) why.push("V jeho oboru je online rezervace/objednání standard – můžeš ji nabídnout jako upsell k novému webu.");
+  if (p.dist <= 3) why.push(`Je jen ${p.dist.toFixed(1).replace(".", ",")} km od tebe – můžeš ho navštívit osobně, což výrazně zvyšuje šanci na úspěch.`);
+  if (p.phone || p.email || p.facts?.emails?.length) why.push("Má dohledatelný kontakt – můžeš ho oslovit hned.");
+  why.push(p.cat.pitch);
+  return [...new Set(why)].slice(0, 6);
+}
+
+/* ================================================================
+   AI popis přes Claude API (volitelné – klíč uživatele)
+   ================================================================ */
+const FALLBACK_MODELS = new Set(["claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-sonnet-5-5"]);
+async function aiDescribe(p) {
+  const cacheKey = "ai:" + p.id;
+  const c = store.get(cacheKey); if (c) return c;
+  const f = p.facts || {};
+  const payload = {
+    nazev: p.name, kategorie: p.cat.label, adresa: p.addr || null, vzdalenost_km: +p.dist.toFixed(1),
+    osm_tagy: Object.fromEntries(Object.entries(p.tags).filter(([k]) => !/^(source|check_date|ref:|survey|note|fixme)/.test(k))),
+    web: p.url || null, stav_webu: p.kind, zaslost_0_100: p.score,
+    web_titulek: f.title || null, web_meta_popis: f.metaDesc || null, web_nadpisy: f.headings || [], web_text_ukazka: (f.text || "").slice(0, 2000),
+    automaticke_nalezy_minus: p.minus || [], automaticke_nalezy_plus: p.plus || []
+  };
+  const prompt = `Jsme dva webdesignéři, kteří oslovují lokální firmy s nabídkou nového nebo modernizovaného webu. Níže jsou data o jedné firmě (z OpenStreetMap a z automatické analýzy jejího webu).
+
+<data>
+${JSON.stringify(payload, null, 1)}
+</data>
+
+Napiš česky:
+1. "popis": podrobný popis firmy o délce 150 až 250 slov – kdo to je, čím se zabývá, pro koho, co nabízí a jak se prezentuje. Vycházej jen z dat; kde data chybí, popiš obor obecně a netvrď konkrétní fakta, která v datech nejsou.
+2. "plus": 3–6 bodů, co má firma (a její web) dobře.
+3. "minus": 3–7 bodů, co má špatně – hlavně na webu, konkrétně a srozumitelně pro laika.
+4. "proc_kandidat": 3–5 bodů, proč je to dobrý kandidát pro naši nabídku a s čím ho oslovit.
+
+Odpověz POUZE validním JSON objektem s klíči popis (string), plus, minus, proc_kandidat (pole stringů). Žádný další text.`;
+  const r = await fetchTimeout("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": settings.ai,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+      ...(FALLBACK_MODELS.has(settings.model || "claude-opus-5-5") ? { "anthropic-beta": "server-side-fallback-2026-07-01" } : {})
+    },
+    body: JSON.stringify({
+      model: settings.model || "claude-opus-5-5",
+      max_tokens: 4000,
+      output_config: { effort: "low" },
+      ...(FALLBACK_MODELS.has(settings.model || "claude-opus-5-5") ? { fallbacks: "default" } : {}),
+      messages: [{ role: "user", content: prompt }]
+    })
+  }, 120000);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j?.error?.message || "HTTP " + r.status);
+  if (j.stop_reason === "refusal") throw new Error("Model požadavek odmítl.");
+  const txt = (j.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  const s = txt.indexOf("{"), e = txt.lastIndexOf("}");
+  const out = JSON.parse(txt.slice(s, e + 1));
+  if (!out.popis) throw new Error("Neplatná odpověď modelu.");
+  store.set(cacheKey, out);
+  return out;
+}
+
+/* ================================================================
+   PageSpeed (na vyžádání)
+   ================================================================ */
+async function pageSpeed(p) {
+  const u = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?strategy=mobile&category=performance&url=" + encodeURIComponent(p.finalUrl || p.url) + (settings.psi ? "&key=" + encodeURIComponent(settings.psi) : "");
+  const r = await fetchTimeout(u, {}, 90000);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j?.error?.message || "HTTP " + r.status);
+  const lh = j.lighthouseResult;
+  return { perf: Math.round((lh?.categories?.performance?.score ?? 0) * 100), lcp: lh?.audits?.["largest-contentful-paint"]?.displayValue, cls: lh?.audits?.["cumulative-layout-shift"]?.displayValue };
+}
+
+/* ================================================================
+   DETAIL PANEL
+   ================================================================ */
+let currentId = null;
+function li(arr) { return arr.map(x => `<li>${esc(x)}</li>`).join(""); }
+function openPanel(p) {
+  currentId = p.id;
+  const col = p.kind === "unknown" ? "#64748b" : scoreHex(p.score ?? 0, p.kind);
+  $("#pScore").style.background = col;
+  $("#pScore").innerHTML = (p.kind === "noweb" ? "∅" : p.kind === "social" ? "f" : p.score ?? "?") + "<small>zašlost</small>";
+  $("#pName").textContent = p.name;
+  $("#pSub").innerHTML = `${esc(p.cat.label)} · ${p.dist.toFixed(1).replace(".", ",")} km${p.addr ? " · " + esc(p.addr) : ""}`;
+  renderBody(p, null);
+  $("#panel").classList.add("open");
+  if (settings.ai) runAi(p);
+}
+function renderBody(p, ai, aiState) {
+  const f = p.facts || {};
+  const desc = ai?.popis || buildDescription(p);
+  const plus = ai?.plus?.length ? ai.plus : (p.plus?.length ? p.plus : ["Podnik je zanesený v mapách a je dohledatelný."]);
+  const minus = ai?.minus?.length ? ai.minus : (p.minus?.length ? p.minus : ["Automatická kontrola nenašla zásadní problémy."]);
+  const why = ai?.proc_kandidat?.length ? ai.proc_kandidat : buildWhy(p);
+  const webUrl = p.finalUrl || p.url;
+  const email = p.email || f.emails?.[0];
+  const phone = p.phone || f.phones?.[0];
+  const gq = encodeURIComponent(p.name + " " + (p.tags["addr:city"] || p.addr || ""));
+  $("#pBody").innerHTML = `
+    <div class="kv">
+      ${webUrl ? `<b>Web</b><span><a href="${esc(webUrl)}" target="_blank" rel="noopener noreferrer">${esc(hostOf(webUrl))}</a> ${p.kind === "dead" ? '<span class="tag">nefunkční</span>' : ""}${f.builder ? ` <span class="tag">${esc(f.builder)}</span>` : ""}</span>` : `<b>Web</b><span class="muted">nemá</span>`}
+      ${phone ? `<b>Telefon</b><span><a href="tel:${esc(phone.replace(/\s/g, ""))}">${esc(phone)}</a></span>` : ""}
+      ${email ? `<b>E-mail</b><span><a href="mailto:${esc(email)}">${esc(email)}</a></span>` : ""}
+      ${p.hours ? `<b>Otevřeno</b><span>${esc(czHours(p.hours))}</span>` : ""}
+    </div>
+    <div class="actions">
+      <a class="btn ghost small" href="https://www.google.com/search?q=${gq}" target="_blank" rel="noopener noreferrer">Google</a>
+      <a class="btn ghost small" href="https://www.firmy.cz/?q=${gq}" target="_blank" rel="noopener noreferrer">Firmy.cz</a>
+      <a class="btn ghost small" href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}" target="_blank" rel="noopener noreferrer">Navigovat</a>
+      ${webUrl && p.kind === "web" ? `<button class="btn ghost small" id="psBtn">Změřit rychlost</button>` : ""}
+      <button class="btn ghost small" id="copyBtn">Kopírovat</button>
+    </div>
+    <div id="psOut" class="small muted" style="margin-top:6px"></div>
+
+    <div class="section">
+      <h3>O firmě ${ai ? '<span class="tag">AI popis</span>' : '<span class="tag">auto</span>'} ${aiState === "loading" ? '<span class="spin"></span>' : ""}</h3>
+      <div class="desc">${esc(desc)}</div>
+      <div class="small muted" style="margin-top:4px">${words(desc)} slov${aiState && aiState !== "loading" ? " · " + esc(aiState) : ""}</div>
+      ${!settings.ai ? `<div class="small muted" style="margin-top:4px">Tip: v ⚙️ Nastavení můžeš zadat Claude API klíč a popisy bude psát AI.</div>` : ""}
+    </div>
+    <div class="section"><h3>Plusy</h3><ul class="pm plus">${li(plus)}</ul></div>
+    <div class="section"><h3>Mínusy</h3><ul class="pm minus">${li(minus)}</ul></div>
+    <div class="section"><h3>Proč je to dobrý kandidát</h3><ul class="pm why">${li(why)}</ul></div>
+    <p class="small muted" style="margin-top:18px">Data: © přispěvatelé OpenStreetMap. Automatická analýza je orientační – před oslovením web vždy projdi ručně.</p>`;
+  $("#psBtn")?.addEventListener("click", async ev => {
+    ev.target.disabled = true; $("#psOut").innerHTML = '<span class="spin"></span> Měřím mobilní výkon přes Google PageSpeed (až 60 s)…';
+    try {
+      const r = await pageSpeed(p);
+      $("#psOut").innerHTML = `Mobilní výkon: <b style="color:${r.perf < 50 ? "var(--bad)" : r.perf < 90 ? "var(--warn)" : "var(--good)"}">${r.perf}/100</b>${r.lcp ? ` · načtení hlavního obsahu ${esc(r.lcp)}` : ""}${r.perf < 50 ? " – web je na mobilu pomalý, další argument pro předělání." : ""}`;
+    } catch (e) { $("#psOut").textContent = "PageSpeed selhal: " + e.message + (settings.psi ? "" : " (bez API klíče je limit velmi nízký)"); ev.target.disabled = false; }
+  });
+  $("#copyBtn").onclick = () => {
+    const txt = `${p.name} (${p.cat.label})\n${p.addr || ""}\nWeb: ${webUrl || "nemá"}\nTelefon: ${phone || "-"}\nE-mail: ${email || "-"}\nZašlost: ${p.score ?? "-"}\n\n${desc}\n\nPLUSY:\n${plus.map(x => "+ " + x).join("\n")}\n\nMÍNUSY:\n${minus.map(x => "- " + x).join("\n")}\n\nPROČ KANDIDÁT:\n${why.map(x => "* " + x).join("\n")}`;
+    navigator.clipboard?.writeText(txt).then(() => toast("Zkopírováno do schránky."), () => toast("Kopírování se nepovedlo."));
+  };
+}
+async function runAi(p) {
+  renderBody(p, store.get("ai:" + p.id), store.get("ai:" + p.id) ? "" : "loading");
+  if (store.get("ai:" + p.id)) return;
+  try {
+    const out = await aiDescribe(p);
+    if (currentId === p.id) renderBody(p, out);
+  } catch (e) {
+    if (currentId === p.id) renderBody(p, null, "AI popis selhal: " + e.message);
+  }
+}
+function closePanel() { $("#panel").classList.remove("open"); currentId = null; }
+$("#pClose").onclick = closePanel;
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closePanel(); $("#settingsModal").classList.remove("open"); } });
+
+/* ================================================================
+   NASTAVENÍ
+   ================================================================ */
+function openSettings() {
+  $("#sNoWeb").checked = settings.noWeb; $("#sChains").checked = settings.chains; $("#sConc").value = settings.conc;
+  $("#sAi").value = settings.ai; $("#sModel").value = settings.model; $("#sPsi").value = settings.psi; $("#sProxy").value = settings.proxy;
+  $("#settingsModal").classList.add("open");
+}
+$("#settingsBtn").onclick = openSettings;
+$("#sClose").onclick = () => $("#settingsModal").classList.remove("open");
+$("#sSave").onclick = () => {
+  settings.noWeb = $("#sNoWeb").checked; settings.chains = $("#sChains").checked;
+  settings.conc = Math.max(1, Math.min(10, +$("#sConc").value || 5));
+  settings.ai = $("#sAi").value.trim(); settings.model = $("#sModel").value.trim() || "claude-opus-5-5";
+  settings.psi = $("#sPsi").value.trim(); settings.proxy = $("#sProxy").value.trim();
+  store.set("settings", settings); $("#settingsModal").classList.remove("open"); rerenderMarkers(); toast("Nastavení uloženo.");
+};
+$("#sClear").onclick = () => { store.clearCache(); toast("Cache vymazána."); };
+</script>
+</body>
+</html>
