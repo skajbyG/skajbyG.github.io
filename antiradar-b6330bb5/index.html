@@ -69,6 +69,10 @@ textarea#crmNote{width:100%;min-height:70px;margin-top:8px;background:var(--pane
 
 .me{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 6px rgba(34,211,238,.35)}
 .maplibregl-canvas{outline:none}
+.baseswitch{display:flex;background:rgba(17,24,39,.92);border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+.baseswitch button{background:none;border:0;color:var(--text);padding:6px 11px;font-size:12.5px;cursor:pointer}
+.baseswitch button.active{background:var(--accent);color:#04202a;font-weight:700}
+.leaflet-control-zoom a{background:rgba(17,24,39,.92)!important;color:var(--text)!important;border-color:var(--line)!important}
 
 /* detail panel */
 #panel{position:fixed;z-index:600;top:0;right:0;bottom:0;width:min(470px,100%);background:var(--panel);border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(105%);transition:transform .25s ease;display:flex;flex-direction:column}
@@ -421,60 +425,104 @@ function categoryOf(tags) {
    ================================================================ */
 const map = L.map("map", { zoomControl: false, attributionControl: true, minZoom: 3, maxZoom: 19 }).setView([49.8, 15.5], 7);
 L.control.zoom({ position: "bottomright" }).addTo(map);
-// podklad: vektorová mapa OpenFreeMap přebarvená do stylu Apple Maps; záloha OSM rastr
+// podklady: Mapa (vektor OpenFreeMap ve stylu Apple Maps), Satelit (Esri), Tmavá; záloha OSM rastr
 const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-let baseLayer = null;
+const OFM_ATTR = '<a href="https://openfreemap.org">OpenFreeMap</a> ' + OSM_ATTR;
+let baseLayers = [], baseToken = 0;
+function clearBase() { baseLayers.forEach(l => map.removeLayer(l)); baseLayers = []; }
+function addBase(l) { l.addTo(map); baseLayers.push(l); return l; }
 function rasterBase() {
-  if (baseLayer) map.removeLayer(baseLayer);
-  baseLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin", attribution: OSM_ATTR }).addTo(map);
-  baseLayer._raster = true;
+  clearBase();
+  addBase(L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin", attribution: OSM_ATTR }));
 }
 function webglOk() { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } }
-const APPLE = { land: "#f4f2ee", water: "#9fcff6", park: "#cfe7c3", wood: "#c4e0b6", sand: "#f3ead3", urban: "#eeebe5", building: "#e5e1da", buildingLine: "#d9d4cb",
-  road: "#ffffff", casing: "#dcd7cf", major: "#ffffff", majorCasing: "#cfc9bf", motorway: "#f9d575", motorwayCasing: "#e3b453", rail: "#cfcac2", label: "#56575b", labelMinor: "#7a7b80", halo: "#ffffff", boundary: "#b8b3c9" };
+const APPLE = { land: "#f5f3ef", water: "#96cdf7", park: "#c6e5b7", wood: "#b9dca8", grass: "#d3ecc6", sand: "#f4ecd5", residential: "#efece7", commercial: "#f3ece6", industrial: "#ece9ee",
+  hospital: "#f8e1e1", school: "#f5ecd0", building: "#e4e0da", buildingLine: "#d6d1c8",
+  road: "#ffffff", casing: "#d9d4cc", major: "#fffaf0", majorCasing: "#e3cfa6", motorway: "#f8cf5f", motorwayCasing: "#dca73a", rail: "#c7c2bb",
+  label: "#3f4045", labelMinor: "#6d6e73", roadLabel: "#5b5c61", halo: "#ffffff", water_label: "#3a7fc1", boundary: "#a9a3c2" };
 function appleize(style) {
-  style.layers = style.layers.filter(l => !/^poi|aerodrome_label|airport/.test(l.id)); // vlastní špendlíky místo POI ikon
+  // méně rušivé POI: jen nejdůležitější body a zastávky, tlumené
+  style.layers = style.layers.filter(l => !/^poi_r(7|20)$|aerodrome_label/.test(l.id));
   for (const l of style.layers) {
     const id = l.id, P = l.paint = l.paint || {};
     if (l.type === "background") P["background-color"] = APPLE.land;
     else if (l.type === "fill") {
-      if (/water/.test(id)) P["fill-color"] = APPLE.water;
-      else if (/park|grass|garden|cemetery|pitch|landcover_(grass|farm|meadow)/.test(id)) P["fill-color"] = APPLE.park;
-      else if (/wood|forest|landcover/.test(id)) P["fill-color"] = /sand|beach/.test(id) ? APPLE.sand : APPLE.wood;
-      else if (/building/.test(id)) { P["fill-color"] = APPLE.building; P["fill-outline-color"] = APPLE.buildingLine; }
-      else if (/landuse|residential|industrial|commercial/.test(id)) P["fill-color"] = APPLE.urban;
-      if ("fill-pattern" in P) delete P["fill-pattern"];
-    } else if (l.type === "fill-extrusion") { P["fill-extrusion-color"] = APPLE.building; P["fill-extrusion-opacity"] = .6; }
+      let c = null;
+      if (/water/.test(id)) c = APPLE.water;
+      else if (/park/.test(id)) c = APPLE.park;
+      else if (/wood|forest/.test(id)) c = APPLE.wood;
+      else if (/grass|meadow|farmland|garden|cemetery|pitch/.test(id)) c = APPLE.grass;
+      else if (/sand|beach/.test(id)) c = APPLE.sand;
+      else if (/hospital/.test(id)) c = APPLE.hospital;
+      else if (/school|university|college/.test(id)) c = APPLE.school;
+      else if (/residential|suburb|neighbourhood/.test(id)) c = APPLE.residential;
+      else if (/commercial|retail/.test(id)) c = APPLE.commercial;
+      else if (/industrial/.test(id)) c = APPLE.industrial;
+      else if (/building/.test(id)) { c = APPLE.building; P["fill-outline-color"] = APPLE.buildingLine; }
+      if (c) { P["fill-color"] = c; if (/wood|forest/.test(id)) delete P["fill-pattern"]; }
+    } else if (l.type === "fill-extrusion") { P["fill-extrusion-color"] = APPLE.building; P["fill-extrusion-opacity"] = .75; }
     else if (l.type === "line") {
-      if (/water/.test(id)) P["line-color"] = APPLE.water;
-      else if (/rail|transit/.test(id)) P["line-color"] = APPLE.rail;
+      if (/water|river|stream|canal/.test(id)) P["line-color"] = APPLE.water;
+      else if (/rail|transit/.test(id)) { if (!/hatch|dash/.test(id)) P["line-color"] = APPLE.rail; }
       else if (/boundary|admin/.test(id)) P["line-color"] = APPLE.boundary;
       else if (/motorway/.test(id)) P["line-color"] = /casing/.test(id) ? APPLE.motorwayCasing : APPLE.motorway;
       else if (/trunk|primary/.test(id)) P["line-color"] = /casing/.test(id) ? APPLE.majorCasing : APPLE.major;
-      else if (/road|bridge|tunnel|highway|street/.test(id) && !/path|pedestrian|oneway|area/.test(id)) P["line-color"] = /casing/.test(id) ? APPLE.casing : APPLE.road;
+      else if (/(road|bridge|tunnel|highway|street)/.test(id) && !/path|pedestrian|oneway|area|rail/.test(id)) P["line-color"] = /casing/.test(id) ? APPLE.casing : APPLE.road;
     } else if (l.type === "symbol" && l.layout && l.layout["text-field"]) {
-      P["text-color"] = /place|city|town|country|state/.test(id) ? APPLE.label : APPLE.labelMinor;
-      P["text-halo-color"] = APPLE.halo; P["text-halo-width"] = 1.4;
-      if (/water/.test(id)) P["text-color"] = "#4a8fcf";
+      P["text-halo-color"] = APPLE.halo; P["text-halo-width"] = 1.5; P["text-halo-blur"] = .5;
+      if (/water/.test(id)) P["text-color"] = APPLE.water_label;
+      else if (/highway|road|street/.test(id)) P["text-color"] = APPLE.roadLabel;
+      else if (/^poi/.test(id)) { P["icon-opacity"] = .85; }
+      else P["text-color"] = /city|town|country|state|capital/.test(id) ? APPLE.label : APPLE.labelMinor;
     }
   }
   return style;
 }
-async function initBase() {
+async function vectorBase(url, transform, token) {
   if (typeof L.maplibreGL !== "function" || typeof maplibregl === "undefined" || !webglOk()) return rasterBase();
   try {
-    const r = await fetchTimeout("https://tiles.openfreemap.org/styles/liberty", {}, 10000);
+    const r = await fetchTimeout(url, {}, 10000);
     if (!r.ok) throw new Error("HTTP " + r.status);
-    const style = appleize(await r.json());
-    baseLayer = L.maplibreGL({ style, attribution: '<a href="https://openfreemap.org">OpenFreeMap</a> ' + OSM_ATTR }).addTo(map);
-    const gl = baseLayer.getMaplibreMap();
+    let style = await r.json();
+    if (token !== baseToken) return;
+    if (transform) style = transform(style);
+    clearBase();
+    const layer = addBase(L.maplibreGL({ style, attribution: OFM_ATTR }));
+    const gl = layer.getMaplibreMap();
     let loaded = false;
     gl.once("load", () => { loaded = true; });
     gl.on("error", () => {});
-    setTimeout(() => { if (!loaded && !baseLayer._raster) rasterBase(); }, 15000);
-  } catch { rasterBase(); }
+    setTimeout(() => { if (!loaded && token === baseToken) rasterBase(); }, 15000);
+  } catch { if (token === baseToken) rasterBase(); }
 }
-initBase();
+function satelliteBase() {
+  clearBase();
+  addBase(L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, maxNativeZoom: 18, attribution: "Snímky &copy; Esri, Maxar, Earthstar Geographics" }));
+  addBase(L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, maxNativeZoom: 18, opacity: .9 }));
+  addBase(L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, maxNativeZoom: 18 }));
+}
+function setBase(kind) {
+  const token = ++baseToken;
+  try { localStorage.setItem("antiradar:base", kind); } catch {}
+  document.querySelectorAll("#baseSwitch button").forEach(b => b.classList.toggle("active", b.dataset.b === kind));
+  if (kind === "sat") satelliteBase();
+  else if (kind === "dark") vectorBase("https://tiles.openfreemap.org/styles/dark", null, token);
+  else vectorBase("https://tiles.openfreemap.org/styles/liberty", appleize, token);
+}
+const BaseSwitch = L.Control.extend({
+  options: { position: "bottomright" },
+  onAdd() {
+    const d = L.DomUtil.create("div", "baseswitch");
+    d.id = "baseSwitch";
+    d.innerHTML = '<button data-b="map">Mapa</button><button data-b="sat">Satelit</button><button data-b="dark">Tmavá</button>';
+    L.DomEvent.disableClickPropagation(d);
+    d.onclick = e => { const b = e.target.closest("button"); if (b) setBase(b.dataset.b); };
+    return d;
+  }
+});
+new BaseSwitch().addTo(map);
+let savedBase = "map"; try { savedBase = localStorage.getItem("antiradar:base") || "map"; } catch {}
+setBase(savedBase);
 const cluster = L.markerClusterGroup({
   maxClusterRadius: 50, showCoverageOnHover: false, spiderfyOnMaxZoom: true, disableClusteringAtZoom: 17,
   iconCreateFunction(c) {
