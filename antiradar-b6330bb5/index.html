@@ -413,18 +413,17 @@ function categoryOf(tags) {
    ================================================================ */
 const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([49.8, 15.5], 7);
 L.control.zoom({ position: "bottomright" }).addTo(map);
-// podklad: CARTO, při selhání automaticky OpenStreetMap
+// podklad: OpenStreetMap (bez klíče), při selhání Esri
 const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-let baseLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-  maxZoom: 20, subdomains: "abcd", referrerPolicy: "strict-origin-when-cross-origin",
-  attribution: OSM_ATTR + ' &copy; <a href="https://carto.com/">CARTO</a>'
+let baseLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin", attribution: OSM_ATTR
 }).addTo(map);
 let tilesOk = 0, tilesBad = 0;
 baseLayer.on("tileload", () => tilesOk++);
 baseLayer.on("tileerror", () => {
   if (++tilesBad < 4 || tilesOk > 0 || baseLayer._fallback) return;
   map.removeLayer(baseLayer);
-  baseLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin", attribution: OSM_ATTR }).addTo(map);
+  baseLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Tiles &copy; Esri" }).addTo(map);
   baseLayer._fallback = true;
   let ok2 = 0, bad2 = 0;
   baseLayer.on("tileload", () => ok2++);
