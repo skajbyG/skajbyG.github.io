@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#0f172a">
 <title>Antiradar</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230f172a'/><circle cx='50' cy='50' r='30' fill='none' stroke='%2322d3ee' stroke-width='6'/><circle cx='50' cy='50' r='10' fill='%23f43f5e'/></svg>">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="lib/leaflet.css">
+<link rel="stylesheet" href="lib/MarkerCluster.css">
 <style>
 :root{
   --bg:#0b1120; --panel:#111827; --panel2:#1f2937; --line:#334155; --text:#e5e7eb; --muted:#94a3b8;
@@ -213,8 +213,8 @@ ul.why li::before{content:"★";color:var(--warn);font-size:13px;top:8px}
 
 <div id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script src="lib/leaflet.js"></script>
+<script src="lib/leaflet.markercluster.js"></script>
 <script>
 "use strict";
 /* ================================================================
@@ -419,6 +419,9 @@ baseLayer.on("tileerror", () => {
   map.removeLayer(baseLayer);
   baseLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin", attribution: OSM_ATTR }).addTo(map);
   baseLayer._fallback = true;
+  let ok2 = 0, bad2 = 0;
+  baseLayer.on("tileload", () => ok2++);
+  baseLayer.on("tileerror", () => { if (++bad2 === 6 && !ok2) toast("Mapový podklad se nepodařilo načíst – zkontroluj připojení nebo blokátor reklam.", 8000); });
 });
 const cluster = L.markerClusterGroup({ maxClusterRadius: 45, showCoverageOnHover: false, spiderfyOnMaxZoom: true, disableClusteringAtZoom: 17 });
 map.addLayer(cluster);
