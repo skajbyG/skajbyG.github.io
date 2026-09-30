@@ -15,6 +15,8 @@ Pozor: repozitář je veřejný, takže zdrojový kód je vidět na GitHubu. Pok
 4. Každý web se stáhne a automaticky ohodnotí **zašlost 0–100**: chybějící HTTPS, nepřizpůsobení mobilům, staré datum v patičce, tabulkový layout, `<font>`/Flash/rámy, FrontPage/Dreamweaver, stará jQuery / WordPress / Joomla, bezplatná subdoména, „ve výstavbě“, zaparkovaná doména, chybějící SEO údaje atd.
 5. Na mapě se zobrazí jen podniky nad zvolenou hranicí zašlosti (posuvník vlevo dole). Fialové jsou podniky bez webu nebo jen s Facebookem.
 6. Po kliknutí na špendlík se otevře detail: popis firmy (150–250 slov), plusy, mínusy a proč je to dobrý kandidát. Tlačítko **Kopírovat** zkopíruje vše do schránky.
+7. V detailu nastavíš **stav obchodu** (Osloveno / Má zájem / Klient / Nemá zájem) a poznámku. Stav se ukáže jako štítek na špendlíku (O, Z, K, ×) a ukládá se jen v tomto prohlížeči. Odmítnuté firmy jde v legendě skrýt.
+8. Weby, které se nepodařilo načíst, jsou šedé „?“. Tlačítkem **Zkusit znovu nenačtené** (po skenu) nebo **Zkusit načíst znovu** (v detailu) se analýza zopakuje.
 
 ## Nastavení (⚙️)
 
