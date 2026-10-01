@@ -17,6 +17,7 @@ Pozor: repozitář je veřejný, takže zdrojový kód je vidět na GitHubu. Pok
 6. Po kliknutí na špendlík se otevře detail: popis firmy (150–250 slov), plusy, mínusy a proč je to dobrý kandidát. Tlačítko **Kopírovat** zkopíruje vše do schránky.
 7. V detailu nastavíš **stav obchodu** (Osloveno / Má zájem / Klient / Nemá zájem) a poznámku. Stav se ukáže jako štítek na špendlíku (O, Z, K, ×) a ukládá se jen v tomto prohlížeči. Odmítnuté firmy jde v legendě skrýt.
 8. Weby, které se nepodařilo načíst, jsou šedé „?“. Tlačítkem **Zkusit znovu nenačtené** (po skenu) nebo **Zkusit načíst znovu** (v detailu) se analýza zopakuje.
+9. Mapa je 3D (MapLibre): naklopený pohled, 3D budovy a terén. Vpravo dole přepínáš podklad **Mapa / Satelit / Tmavá** a tlačítkem **3D** naklopení vypneš. Při hledání se nad okruhem točí radarový paprsek, nalezené firmy „spadnou“ na mapu jako špendlíky a po kliknutí na firmu k ní kamera přiletí a pomalu kolem ní krouží.
 
 ## Nastavení (⚙️)
 
