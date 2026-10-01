@@ -8,9 +8,7 @@
 <meta name="theme-color" content="#0f172a">
 <title>Antiradar</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%230f172a'/><circle cx='50' cy='50' r='30' fill='none' stroke='%2322d3ee' stroke-width='6'/><circle cx='50' cy='50' r='10' fill='%23f43f5e'/></svg>">
-<link rel="stylesheet" href="lib/leaflet.css?v=20261001">
-<link rel="stylesheet" href="lib/MarkerCluster.css?v=20261001">
-<link rel="stylesheet" href="lib/maplibre-gl.css?v=20261001">
+<link rel="stylesheet" href="lib/maplibre-gl.css?v=20261002">
 <style>
 :root{
   --bg:#0b1120; --panel:#111827; --panel2:#1f2937; --line:#334155; --text:#e5e7eb; --muted:#94a3b8;
@@ -67,12 +65,27 @@ a{color:var(--accent)}
 .crm button.active{outline:2px solid var(--accent);outline-offset:1px;font-weight:700}
 textarea#crmNote{width:100%;min-height:70px;margin-top:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:var(--text);font:inherit;resize:vertical}
 
-.me{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 6px rgba(34,211,238,.35)}
+.me{width:20px;height:20px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);position:relative}
+.me i{position:absolute;inset:-3px;border-radius:50%;border:2px solid var(--accent);animation:ring 2.2s ease-out infinite}
+@keyframes ring{0%{transform:scale(1);opacity:.9}100%{transform:scale(4.2);opacity:0}}
+.mk{cursor:pointer}
+.mk .drop{animation:drop .7s cubic-bezier(.2,.9,.3,1.25) both}
+.mk .pop{animation:pop .25s ease-out both}
+@keyframes drop{0%{transform:translateY(-70px) scale(.6);opacity:0}60%{transform:translateY(4px) scale(1.04);opacity:1}80%{transform:translateY(-3px)}100%{transform:none}}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:none;opacity:1}}
+.mk .tip{position:absolute;left:50%;bottom:50px;transform:translateX(-50%) translateY(4px);background:rgba(17,24,39,.95);color:#e5e7eb;border:1px solid #334155;border-radius:9px;padding:5px 9px;font-size:12px;line-height:1.3;white-space:nowrap;pointer-events:none;opacity:0;transition:.15s;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.mk .tip b{display:block}.mk .tip span{color:#94a3b8}
+.mk:hover .tip{opacity:1;transform:translateX(-50%)}
+.mk:hover{z-index:5}
+@media (prefers-reduced-motion:reduce){.mk .drop,.mk .pop,.me i{animation:none}}
 .maplibregl-canvas{outline:none}
 .baseswitch{display:flex;background:rgba(17,24,39,.92);border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
 .baseswitch button{background:none;border:0;color:var(--text);padding:6px 11px;font-size:12.5px;cursor:pointer}
 .baseswitch button.active{background:var(--accent);color:#04202a;font-weight:700}
-.leaflet-control-zoom a{background:rgba(17,24,39,.92)!important;color:var(--text)!important;border-color:var(--line)!important}
+.baseswitch button.b3d{font-weight:800;border-left:1px solid var(--line)}
+.maplibregl-ctrl-group{background:rgba(255,255,255,.95)!important;border-radius:10px!important}
+.maplibregl-ctrl-bottom-right{display:flex;flex-direction:column;align-items:flex-end}
+.maplibregl-ctrl-attrib{font-size:10.5px}
 
 /* detail panel */
 #panel{position:fixed;z-index:600;top:0;right:0;bottom:0;width:min(470px,100%);background:var(--panel);border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(105%);transition:transform .25s ease;display:flex;flex-direction:column}
@@ -230,10 +243,7 @@ ul.why li::before{content:"★";color:var(--warn);font-size:13px;top:8px}
 
 <div id="toast"></div>
 
-<script src="lib/leaflet.js?v=20261001"></script>
-<script src="lib/leaflet.markercluster.js?v=20261001"></script>
-<script src="lib/maplibre-gl.js?v=20261001"></script>
-<script src="lib/leaflet-maplibre-gl.js?v=20261001"></script>
+<script src="lib/maplibre-gl.js?v=20261002"></script>
 <script>
 "use strict";
 /* ================================================================
@@ -421,135 +431,300 @@ function categoryOf(tags) {
 }
 
 /* ================================================================
-   MAPA
+   MAPA – MapLibre GL: 3D budovy, terén, naklopení, animace kamery
    ================================================================ */
-const map = L.map("map", { zoomControl: false, attributionControl: true, minZoom: 3, maxZoom: 19 }).setView([49.8, 15.5], 7);
-L.control.zoom({ position: "bottomright" }).addTo(map);
-// podklady: Mapa (vektor OpenFreeMap ve stylu Apple Maps), Satelit (Esri), Tmavá; záloha OSM rastr
 const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 const OFM_ATTR = '<a href="https://openfreemap.org">OpenFreeMap</a> ' + OSM_ATTR;
-let baseLayers = [], baseToken = 0;
-function clearBase() { baseLayers.forEach(l => map.removeLayer(l)); baseLayers = []; }
-function addBase(l) { l.addTo(map); baseLayers.push(l); return l; }
-function rasterBase() {
-  clearBase();
-  addBase(L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin", attribution: OSM_ATTR }));
-}
+const DEM = { type: "raster-dem", tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], encoding: "terrarium", tileSize: 256, maxzoom: 14, attribution: "Terén: Mapzen/AWS" };
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function webglOk() { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } }
-const APPLE = { land: "#f5f3ef", water: "#96cdf7", park: "#c6e5b7", wood: "#b9dca8", grass: "#d3ecc6", sand: "#f4ecd5", residential: "#efece7", commercial: "#f3ece6", industrial: "#ece9ee",
-  hospital: "#f8e1e1", school: "#f5ecd0", building: "#e4e0da", buildingLine: "#d6d1c8",
-  road: "#ffffff", casing: "#d9d4cc", major: "#fffaf0", majorCasing: "#e3cfa6", motorway: "#f8cf5f", motorwayCasing: "#dca73a", rail: "#c7c2bb",
-  label: "#3f4045", labelMinor: "#6d6e73", roadLabel: "#5b5c61", halo: "#ffffff", water_label: "#3a7fc1", boundary: "#a9a3c2" };
-function appleize(style) {
-  // méně rušivé POI: jen nejdůležitější body a zastávky, tlumené
+const PAL = {
+  map: { land: "#f5f3ef", water: "#96cdf7", park: "#c6e5b7", wood: "#b9dca8", grass: "#d3ecc6", sand: "#f4ecd5", residential: "#efece7", commercial: "#f3ece6", industrial: "#ece9ee",
+    hospital: "#f8e1e1", school: "#f5ecd0", building: "#e7e3dd", buildingTop: "#f2efea", buildingLine: "#d6d1c8",
+    road: "#ffffff", casing: "#d9d4cc", major: "#fffaf0", majorCasing: "#e3cfa6", motorway: "#f8cf5f", motorwayCasing: "#dca73a", rail: "#c7c2bb",
+    label: "#3f4045", labelMinor: "#6d6e73", roadLabel: "#5b5c61", halo: "#ffffff", waterLabel: "#3a7fc1", boundary: "#a9a3c2",
+    sky: "#b9dcf7", horizon: "#e9f2fa", fog: "#f3f1ed" },
+  dark: { land: "#1c1f26", water: "#0f2a44", park: "#1f3326", wood: "#1c3022", grass: "#22362a", sand: "#2b2a24", residential: "#22252c", commercial: "#262830", industrial: "#25242c",
+    hospital: "#33262a", school: "#2e2b22", building: "#2c3039", buildingTop: "#363b46", buildingLine: "#3a3f4a",
+    road: "#3a3f4b", casing: "#2a2e37", major: "#4a505e", majorCasing: "#2f333d", motorway: "#8a6a2b", motorwayCasing: "#5c4720", rail: "#444955",
+    label: "#d7dae0", labelMinor: "#a3a8b3", roadLabel: "#b9bdc6", halo: "#16181d", waterLabel: "#6fa6d8", boundary: "#5d5878",
+    sky: "#0b1020", horizon: "#1d2740", fog: "#141821" }
+};
+function restyle(style, c) {
   style.layers = style.layers.filter(l => !/^poi_r(7|20)$|aerodrome_label/.test(l.id));
+  let hasExtrusion = false;
   for (const l of style.layers) {
     const id = l.id, P = l.paint = l.paint || {};
-    if (l.type === "background") P["background-color"] = APPLE.land;
+    if (l.type === "background") P["background-color"] = c.land;
     else if (l.type === "fill") {
-      let c = null;
-      if (/water/.test(id)) c = APPLE.water;
-      else if (/park/.test(id)) c = APPLE.park;
-      else if (/wood|forest/.test(id)) c = APPLE.wood;
-      else if (/grass|meadow|farmland|garden|cemetery|pitch/.test(id)) c = APPLE.grass;
-      else if (/sand|beach/.test(id)) c = APPLE.sand;
-      else if (/hospital/.test(id)) c = APPLE.hospital;
-      else if (/school|university|college/.test(id)) c = APPLE.school;
-      else if (/residential|suburb|neighbourhood/.test(id)) c = APPLE.residential;
-      else if (/commercial|retail/.test(id)) c = APPLE.commercial;
-      else if (/industrial/.test(id)) c = APPLE.industrial;
-      else if (/building/.test(id)) { c = APPLE.building; P["fill-outline-color"] = APPLE.buildingLine; }
-      if (c) { P["fill-color"] = c; if (/wood|forest/.test(id)) delete P["fill-pattern"]; }
-    } else if (l.type === "fill-extrusion") { P["fill-extrusion-color"] = APPLE.building; P["fill-extrusion-opacity"] = .75; }
-    else if (l.type === "line") {
-      if (/water|river|stream|canal/.test(id)) P["line-color"] = APPLE.water;
-      else if (/rail|transit/.test(id)) { if (!/hatch|dash/.test(id)) P["line-color"] = APPLE.rail; }
-      else if (/boundary|admin/.test(id)) P["line-color"] = APPLE.boundary;
-      else if (/motorway/.test(id)) P["line-color"] = /casing/.test(id) ? APPLE.motorwayCasing : APPLE.motorway;
-      else if (/trunk|primary/.test(id)) P["line-color"] = /casing/.test(id) ? APPLE.majorCasing : APPLE.major;
-      else if (/(road|bridge|tunnel|highway|street)/.test(id) && !/path|pedestrian|oneway|area|rail/.test(id)) P["line-color"] = /casing/.test(id) ? APPLE.casing : APPLE.road;
+      let col = null;
+      if (/water/.test(id)) col = c.water;
+      else if (/park/.test(id)) col = c.park;
+      else if (/wood|forest/.test(id)) col = c.wood;
+      else if (/grass|meadow|farmland|garden|cemetery|pitch/.test(id)) col = c.grass;
+      else if (/sand|beach/.test(id)) col = c.sand;
+      else if (/hospital/.test(id)) col = c.hospital;
+      else if (/school|university|college/.test(id)) col = c.school;
+      else if (/residential|suburb|neighbourhood/.test(id)) col = c.residential;
+      else if (/commercial|retail/.test(id)) col = c.commercial;
+      else if (/industrial/.test(id)) col = c.industrial;
+      else if (/building/.test(id)) { col = c.building; P["fill-outline-color"] = c.buildingLine; }
+      if (col) { P["fill-color"] = col; if (/wood|forest/.test(id)) delete P["fill-pattern"]; }
+    } else if (l.type === "fill-extrusion") {
+      hasExtrusion = true;
+      P["fill-extrusion-color"] = ["interpolate", ["linear"], ["coalesce", ["get", "render_height"], 0], 0, c.building, 60, c.buildingTop];
+      P["fill-extrusion-opacity"] = .9;
+      l.minzoom = 14;
+    } else if (l.type === "line") {
+      if (/water|river|stream|canal/.test(id)) P["line-color"] = c.water;
+      else if (/rail|transit/.test(id)) { if (!/hatch|dash/.test(id)) P["line-color"] = c.rail; }
+      else if (/boundary|admin/.test(id)) P["line-color"] = c.boundary;
+      else if (/motorway/.test(id)) P["line-color"] = /casing/.test(id) ? c.motorwayCasing : c.motorway;
+      else if (/trunk|primary/.test(id)) P["line-color"] = /casing/.test(id) ? c.majorCasing : c.major;
+      else if (/(road|bridge|tunnel|highway|street)/.test(id) && !/path|pedestrian|oneway|area|rail/.test(id)) P["line-color"] = /casing/.test(id) ? c.casing : c.road;
     } else if (l.type === "symbol" && l.layout && l.layout["text-field"]) {
-      P["text-halo-color"] = APPLE.halo; P["text-halo-width"] = 1.5; P["text-halo-blur"] = .5;
-      if (/water/.test(id)) P["text-color"] = APPLE.water_label;
-      else if (/highway|road|street/.test(id)) P["text-color"] = APPLE.roadLabel;
-      else if (/^poi/.test(id)) { P["icon-opacity"] = .85; }
-      else P["text-color"] = /city|town|country|state|capital/.test(id) ? APPLE.label : APPLE.labelMinor;
+      P["text-halo-color"] = c.halo; P["text-halo-width"] = 1.5; P["text-halo-blur"] = .5;
+      if (/water/.test(id)) P["text-color"] = c.waterLabel;
+      else if (/highway|road|street/.test(id)) P["text-color"] = c.roadLabel;
+      else if (/^poi/.test(id)) P["icon-opacity"] = .85;
+      else P["text-color"] = /city|town|country|state|capital/.test(id) ? c.label : c.labelMinor;
     }
   }
+  if (!hasExtrusion && style.sources.openmaptiles) {
+    const idx = style.layers.findIndex(l => l.type === "symbol");
+    style.layers.splice(idx < 0 ? style.layers.length : idx, 0, { id: "ar-3d-buildings", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", minzoom: 14,
+      paint: { "fill-extrusion-color": c.building, "fill-extrusion-height": ["coalesce", ["get", "render_height"], 8], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0], "fill-extrusion-opacity": .9 } });
+  }
+  style.sources.dem = DEM;
+  style.sky = { "sky-color": c.sky, "horizon-color": c.horizon, "fog-color": c.fog, "sky-horizon-blend": .6, "horizon-fog-blend": .6, "fog-ground-blend": .7 };
   return style;
 }
-async function vectorBase(url, transform, token) {
-  if (typeof L.maplibreGL !== "function" || typeof maplibregl === "undefined" || !webglOk()) return rasterBase();
-  try {
-    const r = await fetchTimeout(url, {}, 10000);
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    let style = await r.json();
-    if (token !== baseToken) return;
-    if (transform) style = transform(style);
-    clearBase();
-    const layer = addBase(L.maplibreGL({ style, attribution: OFM_ATTR }));
-    const gl = layer.getMaplibreMap();
-    let loaded = false;
-    gl.once("load", () => { loaded = true; });
-    gl.on("error", () => {});
-    setTimeout(() => { if (!loaded && token === baseToken) rasterBase(); }, 15000);
-  } catch { if (token === baseToken) rasterBase(); }
+function satStyle() {
+  const esri = p => ({ type: "raster", tiles: [`https://server.arcgisonline.com/ArcGIS/rest/services/${p}/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 18 });
+  return { version: 8, sources: { img: { ...esri("World_Imagery"), attribution: "Snímky &copy; Esri, Maxar, Earthstar Geographics" }, roads: esri("Reference/World_Transportation"), places: esri("Reference/World_Boundaries_and_Places"), dem: DEM },
+    layers: [{ id: "img", type: "raster", source: "img" }, { id: "roads", type: "raster", source: "roads", paint: { "raster-opacity": .85 } }, { id: "places", type: "raster", source: "places" }],
+    sky: { "sky-color": "#88b8e8", "horizon-color": "#dbe9f6", "fog-color": "#cfdbe6", "sky-horizon-blend": .5, "horizon-fog-blend": .5, "fog-ground-blend": .8 } };
 }
-function satelliteBase() {
-  clearBase();
-  addBase(L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, maxNativeZoom: 18, attribution: "Snímky &copy; Esri, Maxar, Earthstar Geographics" }));
-  addBase(L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, maxNativeZoom: 18, opacity: .9 }));
-  addBase(L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, maxNativeZoom: 18 }));
+function osmStyle() {
+  return { version: 8, sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 19, attribution: OSM_ATTR }, dem: DEM }, layers: [{ id: "osm", type: "raster", source: "osm" }] };
 }
-function setBase(kind) {
-  const token = ++baseToken;
-  try { localStorage.setItem("antiradar:base", kind); } catch {}
-  document.querySelectorAll("#baseSwitch button").forEach(b => b.classList.toggle("active", b.dataset.b === kind));
-  if (kind === "sat") satelliteBase();
-  else if (kind === "dark") vectorBase("https://tiles.openfreemap.org/styles/dark", null, token);
-  else vectorBase("https://tiles.openfreemap.org/styles/liberty", appleize, token);
+let libertyCache = null;
+async function getLiberty() {
+  if (libertyCache) return structuredClone(libertyCache);
+  const r = await fetchTimeout("https://tiles.openfreemap.org/styles/liberty", {}, 10000);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  libertyCache = await r.json();
+  return structuredClone(libertyCache);
 }
-const BaseSwitch = L.Control.extend({
-  options: { position: "bottomright" },
-  onAdd() {
-    const d = L.DomUtil.create("div", "baseswitch");
-    d.id = "baseSwitch";
-    d.innerHTML = '<button data-b="map">Mapa</button><button data-b="sat">Satelit</button><button data-b="dark">Tmavá</button>';
-    L.DomEvent.disableClickPropagation(d);
-    d.onclick = e => { const b = e.target.closest("button"); if (b) setBase(b.dataset.b); };
-    return d;
-  }
-});
-new BaseSwitch().addTo(map);
-let savedBase = "map"; try { savedBase = localStorage.getItem("antiradar:base") || "map"; } catch {}
-setBase(savedBase);
-const cluster = L.markerClusterGroup({
-  maxClusterRadius: 50, showCoverageOnHover: false, spiderfyOnMaxZoom: true, disableClusteringAtZoom: 17,
-  iconCreateFunction(c) {
-    const places = c.getAllChildMarkers().map(m => m.options.place).filter(Boolean);
-    const worst = places.reduce((a, p) => { const v = p.kind === "noweb" || p.kind === "social" ? 65 : p.kind === "unknown" ? -1 : (p.score ?? 0); return v > a.v ? { v, p } : a; }, { v: -2, p: null });
-    const color = !worst.p || worst.p.kind === "unknown" ? "#64748b" : scoreHex(worst.p.score ?? 0, worst.p.kind);
-    const n = c.getChildCount();
-    return L.divIcon({ className: "", html: `<div class="mpin cl"><div class="stack">${pinSvg(color, true)}</div>${pinSvg(color, true)}<span class="num">${n}</span></div>`, iconSize: [42, 54], iconAnchor: [21, 53] });
-  }
-});
-map.addLayer(cluster);
-let meMarker = null, radiusCircle = null;
 
+const GL = typeof maplibregl !== "undefined" && webglOk();
+const view = { mode3d: store.get("3d", true), base: "map" };
+try { view.base = localStorage.getItem("antiradar:base") || "map"; } catch {}
+let map = null;
+if (!GL) {
+  document.getElementById("map").innerHTML = '<div style="display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:#94a3b8">Tvůj prohlížeč nepodporuje WebGL, takže 3D mapu nejde zobrazit.<br>Zkus aktuální Safari, Chrome nebo Firefox.</div>';
+} else {
+  map = new maplibregl.Map({
+    container: "map", style: osmStyle(), center: [15.5, 49.8], zoom: 6.3, pitch: 0, bearing: 0,
+    maxPitch: 75, attributionControl: { compact: true }, fadeDuration: 250
+  });
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+  map.addControl({
+    onAdd() {
+      const d = document.createElement("div");
+      d.className = "maplibregl-ctrl baseswitch"; d.id = "baseSwitch";
+      d.innerHTML = '<button data-b="map">Mapa</button><button data-b="sat">Satelit</button><button data-b="dark">Tmavá</button><button data-b="3d" class="b3d" title="Přepnout 3D pohled">3D</button>';
+      d.onclick = e => { const b = e.target.closest("button"); if (!b) return; b.dataset.b === "3d" ? toggle3d() : setBase(b.dataset.b); };
+      return d;
+    }, onRemove() {}
+  }, "bottom-right");
+  map.on("style.load", () => { addOwnLayers(); apply3d(false); });
+  map.on("error", () => {});
+  // přerušení automatické rotace kamery uživatelem
+  ["mousedown", "touchstart", "wheel"].forEach(ev => map.getCanvasContainer().addEventListener(ev, () => stopOrbit(), { passive: true }));
+  // nastavení středu: pravý klik / dlouhé podržení
+  map.on("contextmenu", e => { setCenter(e.lngLat.lat, e.lngLat.lng); toast("Střed hledání přesunut sem."); });
+  let lp = null;
+  map.on("touchstart", e => { if (e.points?.length !== 1) return; clearTimeout(lp); lp = setTimeout(() => { setCenter(e.lngLat.lat, e.lngLat.lng); toast("Střed hledání přesunut sem."); }, 650); });
+  ["touchend", "touchmove", "touchcancel", "movestart"].forEach(ev => map.on(ev, () => clearTimeout(lp)));
+  map.on("render", scheduleMarkers);
+  map.on("click", "ar-places-hit", () => {});
+  setBase(view.base);
+}
+
+async function setBase(kind) {
+  if (!map) return;
+  view.base = kind;
+  try { localStorage.setItem("antiradar:base", kind); } catch {}
+  document.querySelectorAll("#baseSwitch button[data-b]").forEach(b => { if (b.dataset.b !== "3d") b.classList.toggle("active", b.dataset.b === kind); });
+  document.body.classList.toggle("darkmap", kind === "dark");
+  let style;
+  try {
+    if (kind === "sat") style = satStyle();
+    else style = restyle(await getLiberty(), PAL[kind === "dark" ? "dark" : "map"]);
+  } catch { style = osmStyle(); toast("Vektorovou mapu se nepodařilo načíst, používám jednoduchý podklad."); }
+  if (view.base !== kind) return;
+  style.sources.dem = style.sources.dem || DEM;
+  map.setStyle(style, { diff: false });
+}
+function apply3d(animate = true) {
+  if (!map) return;
+  document.querySelectorAll("#baseSwitch .b3d").forEach(b => b.classList.toggle("active", view.mode3d));
+  try { map.setTerrain(view.mode3d ? { source: "dem", exaggeration: 1.25 } : null); } catch {}
+  const pitch = view.mode3d ? 55 : 0;
+  if (animate) map.easeTo({ pitch, bearing: view.mode3d ? map.getBearing() || -18 : 0, duration: REDUCED ? 0 : 1200 });
+}
+function toggle3d() { view.mode3d = !view.mode3d; store.set("3d", view.mode3d); apply3d(true); }
+
+/* ---------- vlastní vrstvy: okruh hledání, radarový paprsek, data podniků ---------- */
+const EMPTY = { type: "FeatureCollection", features: [] };
+function circlePoly(center, km, steps = 96) {
+  const [lat, lon] = center, coords = [];
+  const dLat = km / 110.574, dLon = km / (111.32 * Math.cos(lat * Math.PI / 180));
+  for (let i = 0; i <= steps; i++) { const a = i / steps * 2 * Math.PI; coords.push([lon + dLon * Math.sin(a), lat + dLat * Math.cos(a)]); }
+  return { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [coords] } };
+}
+function sectorPoly(center, km, angle, width = 50, steps = 24) {
+  const [lat, lon] = center, coords = [[lon, lat]];
+  const dLat = km / 110.574, dLon = km / (111.32 * Math.cos(lat * Math.PI / 180));
+  for (let i = 0; i <= steps; i++) { const a = (angle - width + width * i / steps) * Math.PI / 180; coords.push([lon + dLon * Math.sin(a), lat + dLat * Math.cos(a)]); }
+  coords.push([lon, lat]);
+  return { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [coords] } };
+}
+function addOwnLayers() {
+  if (!map.getSource("ar-radius")) map.addSource("ar-radius", { type: "geojson", data: state.center ? circlePoly(state.center, state.radius) : EMPTY });
+  if (!map.getSource("ar-sweep")) map.addSource("ar-sweep", { type: "geojson", data: EMPTY });
+  if (!map.getSource("ar-places")) map.addSource("ar-places", { type: "geojson", data: placesGeo(), cluster: true, clusterRadius: 55, clusterMaxZoom: 16, clusterProperties: { worst: ["max", ["get", "w"]] } });
+  const add = l => { if (!map.getLayer(l.id)) map.addLayer(l); };
+  add({ id: "ar-radius-fill", type: "fill", source: "ar-radius", paint: { "fill-color": "#22d3ee", "fill-opacity": .07 } });
+  add({ id: "ar-radius-line", type: "line", source: "ar-radius", paint: { "line-color": "#0891b2", "line-width": 2.2, "line-dasharray": [2, 2] } });
+  add({ id: "ar-sweep", type: "fill", source: "ar-sweep", paint: { "fill-color": "#22d3ee", "fill-opacity": .22 } });
+  add({ id: "ar-places-hit", type: "circle", source: "ar-places", paint: { "circle-radius": 1, "circle-opacity": 0 } });
+  markerCache.forEach(m => m.remove()); markerCache.clear();
+  scheduleMarkers();
+}
+
+/* ---------- poloha a okruh ---------- */
+let meMarker = null;
+function radiusZoom(km) {
+  const el = map.getContainer(), px = Math.min(el.clientWidth, el.clientHeight) - 140;
+  const mpp = 2 * km * 1000 * 1.15 / Math.max(200, px);
+  return Math.log2(156543.03 * Math.cos(state.center[0] * Math.PI / 180) / mpp) - (view.mode3d ? .35 : 0);
+}
 function setCenter(lat, lon, fly = true) {
   state.center = [lat, lon];
-  if (meMarker) map.removeLayer(meMarker);
-  meMarker = L.marker([lat, lon], { icon: L.divIcon({ className: "", html: '<div class="me"></div>', iconSize: [18, 18] }), zIndexOffset: 1000 }).addTo(map).bindTooltip("Střed hledání");
+  if (map) {
+    if (!meMarker) { const d = document.createElement("div"); d.className = "me"; d.innerHTML = "<i></i>"; d.title = "Střed hledání"; meMarker = new maplibregl.Marker({ element: d }).setLngLat([lon, lat]).addTo(map); }
+    else meMarker.setLngLat([lon, lat]);
+  }
   drawRadius(fly);
   $("#scanBtn").disabled = false;
 }
 function drawRadius(fly = true) {
-  if (!state.center) return;
-  if (radiusCircle) map.removeLayer(radiusCircle);
-  radiusCircle = L.circle(state.center, { radius: state.radius * 1000, color: "#22d3ee", weight: 2, fillColor: "#22d3ee", fillOpacity: .06, dashArray: "6 6", interactive: false }).addTo(map);
-  if (fly) map.flyToBounds(radiusCircle.getBounds(), { padding: [30, 30], duration: .8 });
+  if (!state.center || !map) return;
+  map.getSource("ar-radius")?.setData(circlePoly(state.center, state.radius));
+  if (fly) map.flyTo({ center: [state.center[1], state.center[0]], zoom: radiusZoom(state.radius), pitch: view.mode3d ? 55 : 0, bearing: view.mode3d ? -18 : 0, duration: REDUCED ? 0 : 2600, curve: 1.5, essential: true });
 }
-map.on("contextmenu", e => { setCenter(e.latlng.lat, e.latlng.lng); toast("Střed hledání přesunut sem."); });
+
+/* ---------- radarový paprsek + kroužení kamery při skenování ---------- */
+let sweepRaf = 0, sweepAngle = 0, orbitRaf = 0;
+function startSweep() {
+  if (!map || REDUCED) return;
+  cancelAnimationFrame(sweepRaf);
+  let last = performance.now();
+  const tick = t => {
+    sweepAngle = (sweepAngle + (t - last) * .12) % 360; last = t;
+    if (state.center) map.getSource("ar-sweep")?.setData(sectorPoly(state.center, state.radius, sweepAngle));
+    sweepRaf = requestAnimationFrame(tick);
+  };
+  sweepRaf = requestAnimationFrame(tick);
+  startOrbit(4);
+}
+function stopSweep() { cancelAnimationFrame(sweepRaf); sweepRaf = 0; map?.getSource("ar-sweep")?.setData(EMPTY); stopOrbit(); }
+function startOrbit(degPerSec) {
+  if (!map || REDUCED || !view.mode3d) return;
+  cancelAnimationFrame(orbitRaf);
+  let last = performance.now();
+  const tick = t => { if (!map.isMoving() || map._orbiting) { map._orbiting = true; map.setBearing(map.getBearing() + (t - last) / 1000 * degPerSec); map._orbiting = false; } last = t; orbitRaf = requestAnimationFrame(tick); };
+  orbitRaf = requestAnimationFrame(tick);
+}
+function stopOrbit() { cancelAnimationFrame(orbitRaf); orbitRaf = 0; }
+
+/* ---------- špendlíky: GeoJSON s clusterováním + HTML markery ---------- */
+const markerCache = new Map();
+const dropped = new Set();
+let markerPending = false, placesDirty = false;
+// 65.5 = bez webu / jen sociální síť (skóre webů jsou celá čísla, takže se nepletou)
+function severity(p) { return p.kind === "noweb" || p.kind === "social" ? 65.5 : p.kind === "unknown" ? -1 : (p.score ?? 0); }
+function placesGeo() {
+  const features = [];
+  state.places.forEach(p => { if (visible(p)) features.push({ type: "Feature", properties: { id: p.id, w: severity(p) }, geometry: { type: "Point", coordinates: [p.lon, p.lat] } }); });
+  return { type: "FeatureCollection", features };
+}
+function refreshPlaces() {
+  if (placesDirty) return;
+  placesDirty = true;
+  requestAnimationFrame(() => {
+    placesDirty = false;
+    if (!map) return;
+    markerCache.forEach(m => m.remove()); markerCache.clear();
+    map.getSource("ar-places")?.setData(placesGeo());
+    scheduleMarkers();
+  });
+}
+function scheduleMarkers() {
+  if (markerPending || !map) return;
+  markerPending = true;
+  requestAnimationFrame(() => { markerPending = false; syncMarkers(); });
+}
+function colorForSeverity(w) { return w < 0 ? "#64748b" : w === 65.5 ? "#a855f7" : scoreHex(w); }
+function syncMarkers() {
+  if (!map.getSource("ar-places") || !map.isSourceLoaded("ar-places")) return;
+  const seen = new Set();
+  for (const f of map.querySourceFeatures("ar-places")) {
+    const pr = f.properties, key = pr.cluster ? "c" + pr.cluster_id : pr.id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    let m = markerCache.get(key);
+    if (!m) {
+      const el = document.createElement("div");
+      el.className = "mk";
+      if (pr.cluster) {
+        const w = pr.worst ?? 0;
+        const color = colorForSeverity(w);
+        el.innerHTML = `<div class="pop"><div class="mpin cl"><div class="stack">${pinSvg(color, true)}</div>${pinSvg(color, true)}<span class="num">${pr.point_count}</span></div></div>`;
+        el.title = `${pr.point_count} podniků – kliknutím přiblížíš`;
+        el.onclick = async e => {
+          e.stopPropagation();
+          try { const z = await map.getSource("ar-places").getClusterExpansionZoom(pr.cluster_id); map.easeTo({ center: f.geometry.coordinates, zoom: z + .3, duration: REDUCED ? 0 : 900 }); } catch {}
+        };
+      } else {
+        const p = state.places.get(pr.id); if (!p) continue;
+        const label = p.kind === "noweb" ? "∅" : p.kind === "social" ? "f" : p.kind === "unknown" ? "?" : p.score;
+        const bg = p.kind === "unknown" ? "#64748b" : scoreHex(p.score ?? 0, p.kind);
+        const crm = CRM[crmGet(p.id).s] || CRM[""];
+        const badge = crm.badge ? `<b class="crmb" style="background:${crm.color}">${crm.badge}</b>` : "";
+        const first = !dropped.has(p.id); dropped.add(p.id);
+        el.innerHTML = `<div class="${first && !REDUCED ? "drop" : "pop"}" style="animation-delay:${first ? Math.round(Math.random() * 250) : 0}ms">${pinHtml(bg, label, badge)}<div class="tip"><b>${esc(p.name)}</b><span>${esc(p.cat.label)}</span></div></div>`;
+        el.onclick = e => { e.stopPropagation(); openPanel(p); };
+      }
+      m = new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(f.geometry.coordinates).addTo(map);
+      markerCache.set(key, m);
+    }
+  }
+  markerCache.forEach((m, k) => { if (!seen.has(k)) { m.remove(); markerCache.delete(k); } });
+}
+function clearMarkers() { markerCache.forEach(m => m.remove()); markerCache.clear(); dropped.clear(); map?.getSource("ar-places")?.setData(EMPTY); }
+
+/* ---------- průlet kamery k firmě ---------- */
+function flyToPlace(p) {
+  if (!map) return;
+  const mobile = matchMedia("(max-width:700px)").matches;
+  stopOrbit();
+  map.flyTo({ center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 17.2), pitch: view.mode3d ? 62 : 0, bearing: view.mode3d ? map.getBearing() + 35 : 0,
+    offset: mobile ? [0, -Math.round(innerHeight * .37)] : [-235, 40], duration: REDUCED ? 0 : 2200, curve: 1.3, essential: true });
+  if (view.mode3d && !REDUCED) map.once("moveend", () => { if (currentId === p.id) startOrbit(3); });
+}
 
 /* radius chips */
 function renderChips() {
@@ -841,7 +1016,7 @@ async function scan() {
   if (!state.center || state.running) return;
   state.running = true; state.abort = new AbortController();
   const signal = state.abort.signal;
-  cluster.clearLayers(); state.places.clear(); closePanel();
+  clearMarkers(); state.places.clear(); closePanel(); startSweep();
   $("#scanBtn").disabled = true;
   showProgress(`Hledám podniky do ${state.radius} km…`, 3);
   try {
@@ -895,7 +1070,7 @@ async function scan() {
     if (!signal.aborted) { showProgress("Chyba při hledání: " + esc(e.message) + ". Zkus to za chvíli znovu nebo zmenši okruh.", 100, true); setTimeout(hideProgress, 7000); }
     else hideProgress();
   } finally {
-    state.running = false; $("#scanBtn").disabled = false; updateStats();
+    state.running = false; $("#scanBtn").disabled = false; updateStats(); stopSweep();
   }
 }
 async function reanalyze(places) {
@@ -952,20 +1127,8 @@ function pinSvg(color, big) {
 function pinHtml(color, label, extra = "") {
   return `<div class="pinwrap"><div class="mpin">${pinSvg(color)}<span class="num">${label}</span></div>${extra}</div>`;
 }
-function addMarker(p) {
-  if (p.marker) { cluster.removeLayer(p.marker); p.marker = null; }
-  if (!visible(p)) return;
-  const label = p.kind === "noweb" ? "∅" : p.kind === "social" ? "f" : p.kind === "unknown" ? "?" : p.score;
-  const bg = p.kind === "unknown" ? "#64748b" : scoreHex(p.score ?? 0, p.kind);
-  const crm = CRM[crmGet(p.id).s] || CRM[""];
-  const badge = crm.badge ? `<b class="crmb" style="background:${crm.color}">${crm.badge}</b>` : "";
-  const icon = L.divIcon({ className: "", html: pinHtml(bg, label, badge), iconSize: [34, 44], iconAnchor: [17, 43], popupAnchor: [0, -40] });
-  p.marker = L.marker([p.lat, p.lon], { icon, title: p.name, place: p });
-  p.marker.bindTooltip(`<b>${esc(p.name)}</b><br>${esc(p.cat.label)}`, { direction: "top", offset: [0, -40] });
-  p.marker.on("click", () => openPanel(p));
-  cluster.addLayer(p.marker);
-}
-function rerenderMarkers() { cluster.clearLayers(); state.places.forEach(p => { p.marker = null; addMarker(p); }); updateStats(); }
+function addMarker() { refreshPlaces(); }
+function rerenderMarkers() { refreshPlaces(); updateStats(); }
 function updateStats() {
   const all = [...state.places.values()];
   if (!all.length) { $("#stats").textContent = "Zatím nic nenalezeno."; return; }
@@ -1139,6 +1302,7 @@ async function pageSpeed(p) {
    ================================================================ */
 let currentId = null;
 function li(arr) { return arr.map(x => `<li>${esc(x)}</li>`).join(""); }
+let currentFly = null;
 function openPanel(p) {
   currentId = p.id;
   const col = p.kind === "unknown" ? "#64748b" : scoreHex(p.score ?? 0, p.kind);
@@ -1147,7 +1311,9 @@ function openPanel(p) {
   $("#pName").textContent = p.name;
   $("#pSub").innerHTML = `${esc(p.cat.label)} · ${p.dist.toFixed(1).replace(".", ",")} km${p.addr ? " · " + esc(p.addr) : ""}`;
   renderBody(p, null);
+  const wasOpen = $("#panel").classList.contains("open");
   $("#panel").classList.add("open");
+  if (!wasOpen || currentFly !== p.id) { currentFly = p.id; flyToPlace(p); }
   if (settings.ai) runAi(p);
 }
 function renderBody(p, ai, aiState) {
@@ -1226,7 +1392,11 @@ async function runAi(p) {
     if (currentId === p.id) renderBody(p, null, "AI popis selhal: " + e.message);
   }
 }
-function closePanel() { $("#panel").classList.remove("open"); currentId = null; }
+function closePanel() {
+  const was = $("#panel").classList.contains("open");
+  $("#panel").classList.remove("open"); currentId = null; currentFly = null; stopOrbit();
+  if (was && map && !state.running) map.easeTo({ pitch: view.mode3d ? 55 : 0, zoom: Math.min(map.getZoom(), 16), offset: [0, 0], duration: REDUCED ? 0 : 900 });
+}
 $("#pClose").onclick = closePanel;
 document.addEventListener("keydown", e => { if (e.key === "Escape") { closePanel(); $("#settingsModal").classList.remove("open"); } });
 
