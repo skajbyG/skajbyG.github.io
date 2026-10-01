@@ -556,7 +556,9 @@ if (!GL) {
       return d;
     }, onRemove() {}
   }, "bottom-right");
-  map.on("style.load", () => { addOwnLayers(); apply3d(false); });
+  map.on("style.load", () => { terrainOn = false; addOwnLayers(); apply3d(false); });
+  map.on("zoomend", syncTerrain);
+  map.on("idle", syncTerrain);
   map.on("error", () => {});
   // přerušení automatické rotace kamery uživatelem
   ["mousedown", "touchstart", "wheel"].forEach(ev => map.getCanvasContainer().addEventListener(ev, () => stopOrbit(), { passive: true }));
@@ -589,10 +591,19 @@ async function setBase(kind) {
 function apply3d(animate = true) {
   if (!map) return;
   document.querySelectorAll("#baseSwitch .b3d").forEach(b => b.classList.toggle("active", view.mode3d));
-  try { map.setTerrain(view.mode3d ? { source: "dem", exaggeration: 1.25 } : null); } catch {}
+  syncTerrain();
   if (map.getLayer("ar-towers")) map.setLayoutProperty("ar-towers", "visibility", view.mode3d ? "visible" : "none");
   const pitch = view.mode3d ? 55 : 0;
   if (animate) map.easeTo({ pitch, bearing: view.mode3d ? map.getBearing() || -18 : 0, duration: REDUCED ? 0 : 1200 });
+}
+// terén jen při přiblížení – na celé zeměkouli nemá smysl a MapLibre s ním při startu padá
+let terrainOn = false;
+function syncTerrain() {
+  if (!map || !map.isStyleLoaded() || !map.getSource("dem")) return;
+  const want = view.mode3d && map.getZoom() >= 7;
+  if (want === terrainOn && !!map.getTerrain() === want) return;
+  terrainOn = want;
+  try { map.setTerrain(want ? { source: "dem", exaggeration: 1.25 } : null); } catch { terrainOn = false; }
 }
 function toggle3d() { view.mode3d = !view.mode3d; store.set("3d", view.mode3d); apply3d(true); }
 
